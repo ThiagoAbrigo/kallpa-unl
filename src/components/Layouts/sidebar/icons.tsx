@@ -208,3 +208,43 @@ export function DumbbellIcon(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+export function TapeMeasureIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      width={24}
+      height={24}
+      {...props}
+    >
+      <path d="M4 6h16v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6z" />
+      <path d="M8 6v4" />
+      <path d="M12 6v6" />
+      <path d="M16 6v4" />
+    </svg>
+  );
+}
+export function HistoryIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={24}
+      height={24}
+      viewBox="0 0 24 24"
+      fill="none"
+      {...props}
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M12 2.25a9.75 9.75 0 100 19.5 9.75 9.75 0 000-19.5zm0 1.5a8.25 8.25 0 110 16.5 8.25 8.25 0 010-16.5zm-.75 3.5a.75.75 0 011.5 0v5.19l3.22 1.86a.75.75 0 01-.75 1.3l-3.6-2.08a.75.75 0 01-.37-.65V7.25z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
