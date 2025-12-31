@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+/*import { useState } from "react";*/
+import { useEffect, useState } from "react";
 import InputGroup from "@/components/FormElements/InputGroup";
 import { ShowcaseSection } from "@/components/Layouts/showcase-section";
 import {
@@ -18,6 +19,9 @@ import { AssessmentData } from "@/types/assessment";
 import ErrorMessage from "../FormElements/errormessage";
 import { TbArrowsVertical, TbScale } from "react-icons/tb";
 import { LuHistory, LuRuler } from "react-icons/lu";
+import { Alert } from "@/components/ui-elements/alert";
+
+
 
 export function AnthropometricForm() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -32,10 +36,21 @@ export function AnthropometricForm() {
   const [date, setDate] = useState<string>("");
   const [status, setStatus] = useState<string>("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertType, setAlertType] = useState<"success" | "error">("success");
+  const [alertTitle, setAlertTitle] = useState("");
+  const [alertDescription, setAlertDescription] = useState("");
+  useEffect(() => {
+    const today = new Date();
+    const formattedDate = today.toISOString().split("T")[0];
+    setDate(formattedDate);
+  }, []);
+
+
 
   const filteredParticipants = participants.filter(
     (p) =>
-        (p.firstName?.toLowerCase().includes(search.toLowerCase()) ?? false) ||
+      (p.firstName?.toLowerCase().includes(search.toLowerCase()) ?? false) ||
       (p.lastName?.toLowerCase().includes(search.toLowerCase()) ?? false) ||
       (p.dni?.includes(search) ?? false),
   );
@@ -62,6 +77,13 @@ export function AnthropometricForm() {
       if (response.code === 200) {
         setBmi(response.data.bmi);
         setStatus(response.data.status);
+        setAlertType("success");
+        setAlertTitle("Medidas guardadas");
+        setAlertDescription(
+          "Las medidas antropométricas se guardaron correctamente."
+        );
+        setShowAlert(true);
+        setTimeout(() => setShowAlert(false), 3000);
       }
 
       if (response.code === 400 && response.errors) {
@@ -69,7 +91,13 @@ export function AnthropometricForm() {
       }
     } catch (error) {
       console.error("Error guardando evaluación:", error);
+      setAlertType("error");
+      setAlertTitle("Error");
+      setAlertDescription("No se pudo guardar la evaluación.");
+      setShowAlert(true);
+      setTimeout(() => setShowAlert(false), 3000);
     }
+
   };
   const clearFieldError = (field: string) => {
     setErrors((prev) => {
@@ -113,6 +141,17 @@ export function AnthropometricForm() {
       }
       className="!p-6.5"
     >
+      {/* alert */}
+      {showAlert && (
+        <div className="mb-6">
+          <Alert
+            variant={alertType}
+            title={alertTitle}
+            description={alertDescription}
+          />
+        </div>
+      )}
+
       <form
         action="#"
         onSubmit={handleSubmit}
@@ -337,13 +376,12 @@ export function AnthropometricForm() {
             <div className="mt-8">
               <div className="relative h-2.5 w-full rounded-full bg-gray-200 dark:bg-gray-800">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    status === "Bajo peso"
-                      ? "bg-red-500"
-                      : status === "Normal"
-                        ? "bg-green-500"
-                        : "bg-orange-500"
-                  }`}
+                  className={`h-full rounded-full transition-all duration-500 ${status === "Bajo peso"
+                    ? "bg-red-500"
+                    : status === "Normal"
+                      ? "bg-green-500"
+                      : "bg-orange-500"
+                    }`}
                   style={{
                     width: bmi ? `${Math.min((bmi / 40) * 100, 100)}%` : "0%",
                   }}
