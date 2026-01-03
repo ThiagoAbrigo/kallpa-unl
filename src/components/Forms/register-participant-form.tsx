@@ -149,10 +149,11 @@ export const RegisterParticipantForm = () => {
     } catch (err: any) {
       setAlertType("error");
       setAlertTitle("Error");
-      setAlertDescription(err.message || "Error al registrar participante.");
+      setAlertDescription("No se pudo registrar el participante.");
       setShowAlert(true);
       setTimeout(() => setShowAlert(false), 3000);
-    } finally {
+    }
+    finally {
       setLoading(false);
     }
   };
@@ -264,7 +265,7 @@ export const RegisterParticipantForm = () => {
         <div className="mb-4.5 flex flex-col gap-6 xl:flex-row">
           <div className="w-full xl:w-1/2">
             <InputGroup
-              label="Email Address (Optional)"
+              label="Email (Optional)"
               name="email"
               type="email"
               placeholder="john@example.com"
@@ -276,7 +277,7 @@ export const RegisterParticipantForm = () => {
 
           <div className="w-full xl:w-1/2">
             <InputGroup
-              label="Phone Number"
+              label="Número de Celular"
               name="phone"
               type="text"
               placeholder="+1 (555) 000-0000"
@@ -349,7 +350,7 @@ export const RegisterParticipantForm = () => {
 
           <div className="w-full">
             <InputGroup
-              label="Teléfono del Responsable"
+              label="Celular del Responsable"
               name="responsiblePhone"
               type="text"
               placeholder="099..."
