@@ -78,8 +78,24 @@ export const NAV_DATA = [
       {
         title: "Asistencia",
         icon: Icons.Calendar,
-        url: "/pages/attendance",
-        items: [],
+        items: [
+          {
+            title: "Dashboard",
+            url: "/pages/attendance",
+          },
+          {
+            title: "Participantes",
+            url: "/pages/attendance/participantes",
+          },
+          {
+            title: "Historial",
+            url: "/pages/attendance/historial",
+          },
+          {
+            title: "Programar",
+            url: "/pages/attendance/programar",
+          },
+        ],
       },
       {
         title: "Medidas Antro",
