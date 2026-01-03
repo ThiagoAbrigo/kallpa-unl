@@ -156,6 +156,12 @@ export const NAV_DATA = [
           },
         ],
       },
+      {
+        title: "Usuarios",
+        url: "/pages/user",
+        icon: Icons.Table,
+        items: [],
+      },
     ],
   },
 ];
