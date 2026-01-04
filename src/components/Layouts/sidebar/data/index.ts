@@ -83,10 +83,7 @@ export const NAV_DATA = [
             title: "Dashboard",
             url: "/pages/attendance",
           },
-          {
-            title: "Participantes",
-            url: "/pages/attendance/participantes",
-          },
+
           {
             title: "Historial",
             url: "/pages/attendance/historial",
