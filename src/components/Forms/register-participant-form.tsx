@@ -8,7 +8,8 @@ import { Alert } from "@/components/ui-elements/alert";
 import ErrorMessage from "../FormElements/errormessage";
 import { ShowcaseSection } from "../Layouts/showcase-section";
 
-export const RegisterParticipantForm = () => {
+// Estado inicial del formulario y configuración de alertas
+const RegisterParticipantForm = () => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showAlert, setShowAlert] = useState(false);
@@ -17,6 +18,7 @@ export const RegisterParticipantForm = () => {
   >("success");
   const [alertTitle, setAlertTitle] = useState("");
   const [alertDescription, setAlertDescription] = useState("");
+
   const triggerAlert = (
     variant: "success" | "error" | "warning",
     title: string,
@@ -32,30 +34,16 @@ export const RegisterParticipantForm = () => {
     }, 3000);
   };
 
-  // const [formData, setFormData] = useState({
-  //   firstName: "",
-  //   lastName: "",
-  //   dni: "",
-  //   type: "ESTUDIANTE",
-  //   phone: "",
-  //   address: "",
-  //   age: "",
-  //   email: "",
-  // });
-
-  //logica revisar josep
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     dni: "",
     type: "",
-    program: "", // Required program field: INICIACION or FUNCIONAL
+    program: "",
     phone: "",
     address: "",
     age: "",
     email: "",
-
-    //SOLO PARA MENORES
     responsibleName: "",
     responsibleDni: "",
     responsiblePhone: "",
@@ -79,7 +67,7 @@ export const RegisterParticipantForm = () => {
     { value: "PARTICIPANTE", label: "Participante General" },
   ];
 
-  // Fixed program options per backend API
+  // Opciones de programa según API
   const programOptions = [
     { value: "", label: "Seleccione un programa" },
     { value: "INICIACION", label: "Iniciación" },
@@ -101,49 +89,49 @@ export const RegisterParticipantForm = () => {
 
     try {
       if (!formData.firstName)
-        newErrors.firstName = "Nombre requerido";
+        errors.firstName = "Nombre requerido";
 
       if (!formData.lastName)
-        newErrors.lastName = "Apellido requerido";
+        errors.lastName = "Apellido requerido";
 
       if (!formData.dni || formData.dni.length < 10)
-        newErrors.dni = "La cédula debe tener al menos 10 dígitos";
+        errors.dni = "La cédula debe tener al menos 10 dígitos";
 
       if (!formData.age)
-        newErrors.age = "Edad requerida";
+        errors.age = "Edad requerida";
 
       if (!formData.type)
-        newErrors.type = "Tipo de participante requerido";
+        errors.type = "Tipo de participante requerido";
 
       if (!formData.program)
-        newErrors.program = "Programa requerido (INICIACION o FUNCIONAL)";
+        errors.program = "Programa requerido (INICIACION o FUNCIONAL)";
 
       if (formData.email) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(formData.email)) {
-          newErrors.email = "Email no válido";
+          errors.email = "Email no válido";
         }
       }
 
       if (!formData.phone)
-        newErrors.phone = "Celular requerido";
+        errors.phone = "Celular requerido";
       else if (formData.phone.length < 10)
-        newErrors.phone = "Celular no válido";
+        errors.phone = "Celular no válido";
 
       if (!formData.address)
-        newErrors.address = "Dirección requerida";
+        errors.address = "Dirección requerida";
 
       if (isMinor) {
         if (!formData.responsibleName)
-          newErrors.responsibleName = "Nombre del responsable requerido";
+          errors.responsibleName = "Nombre del responsable requerido";
         if (!formData.responsibleDni)
-          newErrors.responsibleDni = "Cédula del responsable requerida";
+          errors.responsibleDni = "Cédula del responsable requerida";
         if (!formData.responsiblePhone)
-          newErrors.responsiblePhone = "Teléfono del responsable requerido";
+          errors.responsiblePhone = "Teléfono del responsable requerido";
       }
 
-      if (Object.keys(newErrors).length > 0) {
-        setErrors(newErrors);
+      if (Object.keys(errors).length > 0) {
+        setErrors(errors);
         return;
       }
       await participantService.createParticipant({
@@ -272,7 +260,7 @@ export const RegisterParticipantForm = () => {
           </div>
         </div>
 
-        {/* Program Selection */}
+
         <div className="mb-4.5">
           <Select
             name="program"

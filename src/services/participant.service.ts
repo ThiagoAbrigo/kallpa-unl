@@ -188,14 +188,14 @@ export const participantService = {
       .filter((p: any) => p.type === 'PASANTE');
   },
 
-  //Metodo adicional revisar Josep
+  // Método para crear participante y manejar errores del backend
   async createParticipant(data: any) {
     const isMinor = data.age < 18 || data.type === "INICIACION";
 
     const payload = isMinor
       ? {
         type: "INICIACION",
-        program: data.program, // Required program field
+        program: data.program,
         participant: {
           firstName: data.firstName,
           lastName: data.lastName,
@@ -220,7 +220,7 @@ export const participantService = {
         email: data.email || `${data.dni}@participante.local`,
         address: data.address || "",
         type: data.type,
-        program: data.program, // Required program field
+        program: data.program,
       };
 
     const response = await fetch(`${API_URL}/save-participants`, {
@@ -232,7 +232,7 @@ export const participantService = {
     const result = await response.json();
 
     if (!response.ok) {
-      throw result; // 🔥 lanzamos TODO el error del backend
+      throw result;
     }
 
     return result;

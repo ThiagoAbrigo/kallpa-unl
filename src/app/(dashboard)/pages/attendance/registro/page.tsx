@@ -141,32 +141,12 @@ export default function Registro() {
         name: p.name || `${p.first_name || p.firstName || ''} ${p.last_name || p.lastName || ''}`.trim(),
         status: (p.status === 'active' || p.status === 'ACTIVO') ? 'ACTIVO' : 'INACTIVO'
       })) as Participant[];
-      
+
       setAllParticipants(normalizedParticipants);
       setParticipants(normalizedParticipants);
 
-      // Si hay una sesión preseleccionada, verificar si tiene programa
-      const sessionId = searchParams.get('session');
-      if (sessionId) {
-        const selectedSession = normalizedSchedules.find(s => s.id === sessionId || s.external_id === sessionId);
-        if (selectedSession?.program_id) {
-          // Cargar participantes del programa
-          try {
-            const programParticipantsRes = await attendanceService.getProgramParticipants(selectedSession.program_id);
-            const programParticipants = programParticipantsRes.data.data || [];
-            const normalizedProgramParticipants = programParticipants.map((p: any) => ({
-              ...p,
-              id: p.external_id || p.id,
-              name: p.name || `${p.first_name || p.firstName || ''} ${p.last_name || p.lastName || ''}`.trim(),
-              status: (p.status === 'active' || p.status === 'ACTIVO') ? 'ACTIVO' : 'INACTIVO'
-            })) as Participant[];
-            setParticipants(normalizedProgramParticipants);
-            setCurrentProgram(selectedSession.program_name || 'Programa');
-          } catch (error) {
-            console.error('Error loading program participants:', error);
-            // Si falla, usar todos los participantes
-          }
-        }
+      if (program) {
+        setCurrentProgram(program);
       }
     } catch (error) {
       console.error('Error loading participants:', error);
@@ -290,7 +270,7 @@ export default function Registro() {
                 <div>
                   <p className="font-medium text-yellow-800 dark:text-yellow-300">Selecciona una sesión desde el Dashboard</p>
                   <p className="text-sm text-yellow-600 dark:text-yellow-400">
-                    Ve al Dashboard y haz clic en "Registrar Asistencia" en la sesión que deseas registrar.
+                    Ve al Dashboard y haz clic en &quot;Registrar Asistencia&quot; en la sesión que deseas registrar.
                   </p>
                 </div>
               </div>
