@@ -79,6 +79,8 @@ export const attendanceService = {
     });
   },
 
+  // ==================== ASISTENCIA ====================
+
   // Registrar asistencia
   async registerAttendance(data: {
     schedule_external_id: string;

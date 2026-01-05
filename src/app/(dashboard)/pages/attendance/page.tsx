@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { attendanceService } from '@/services/attendance.services';
-import type { Session, Participant, Schedule } from '@/types/attendance';
+import type { Session, Participant, Schedule, Program } from '@/types/attendance';
 
 function StatCard({ icon, iconBg, label, value }: { icon: string; iconBg: string; label: string; value: string | number }) {
   return (
@@ -38,6 +38,17 @@ export default function DashboardAsistencia() {
   const [loading, setLoading] = useState(true);
   const [currentDate] = useState(new Date());
   const [editingSession, setEditingSession] = useState<Schedule | null>(null);
+  const [programs, setPrograms] = useState<Program[]>([]);
+  const PROGRAM_COLORS = [
+    { value: '#3B82F6', label: 'Azul' },
+    { value: '#10B981', label: 'Verde' },
+    { value: '#F59E0B', label: 'Amarillo' },
+    { value: '#EF4444', label: 'Rojo' },
+    { value: '#8B5CF6', label: 'Morado' },
+    { value: '#EC4899', label: 'Rosa' },
+    { value: '#06B6D4', label: 'Cyan' },
+    { value: '#F97316', label: 'Naranja' },
+  ];
   const [deleting, setDeleting] = useState<string | number | null>(null);
 
   // Fixed program options
@@ -83,7 +94,8 @@ export default function DashboardAsistencia() {
       setTodaySchedules(todaySessions);
 
       // Obtener próximas sesiones (sesiones programadas para los próximos días)
-      const upcoming = getUpcomingSessions(schedules);
+      const upcoming = getUpcomingSessions(normalizedSchedules);
+      console.log('📆 UPCOMING SESSIONS:', upcoming.map(s => ({ name: (s as any).name, day_of_week_es: (s as any).day_of_week_es })));
       setUpcomingSessions(upcoming);
 
       // Programs are in the 5th element of results array, let's restructure:
@@ -131,6 +143,8 @@ export default function DashboardAsistencia() {
     const todayDay = today.getDay();
     const todayStr = today.toISOString().split('T')[0];
     const todaySessions: Schedule[] = [];
+    
+    console.log(`🗓️ HOY: todayDay=${todayDay} (0=Dom, 1=Lun, ..., 6=Sáb), todayStr=${todayStr}`);
 
     schedules.forEach(schedule => {
       const specificDate = (schedule as any).specific_date || (schedule as any).specificDate;
@@ -138,6 +152,7 @@ export default function DashboardAsistencia() {
       if (specificDate) {
         // Sesión con fecha específica - verificar si es hoy
         if (specificDate === todayStr) {
+          console.log(`✅ "${(schedule as any).name}" agregada (fecha específica coincide)`);
           todaySessions.push(schedule);
         }
       } else {
@@ -155,18 +170,27 @@ export default function DashboardAsistencia() {
           if (startDateStr) {
             const startDate = parseDate(startDateStr);
             startDate.setHours(0, 0, 0, 0);
-            if (today < startDate) isWithinRange = false;
+            if (today < startDate) {
+              console.log(`❌ "${(schedule as any).name}" excluida: hoy < start_date (${startDateStr})`);
+              isWithinRange = false;
+            }
           }
 
           if (endDateStr && isWithinRange) {
             const endDate = parseDate(endDateStr);
             endDate.setHours(0, 0, 0, 0);
-            if (today > endDate) isWithinRange = false;
+            if (today > endDate) {
+              console.log(`❌ "${(schedule as any).name}" excluida: hoy > end_date (${endDateStr})`);
+              isWithinRange = false;
+            }
           }
 
           if (isWithinRange) {
+            console.log(`✅ "${(schedule as any).name}" agregada (día recurrente coincide)`);
             todaySessions.push(schedule);
           }
+        } else {
+          console.log(`⏭️ "${(schedule as any).name}" omitida: scheduleDay=${scheduleDay} !== todayDay=${todayDay}`);
         }
       }
     });
@@ -234,8 +258,8 @@ export default function DashboardAsistencia() {
           if (startDateStr) {
             const startDate = parseDate(startDateStr);
             startDate.setHours(0, 0, 0, 0);
-            if (nextDate < startDate) {
-              isWithinRange = false;
+            if (startDate > today) {
+              candidateDate = new Date(startDate);
             }
           }
 
@@ -243,7 +267,7 @@ export default function DashboardAsistencia() {
             const endDate = parseDate(endDateStr);
             endDate.setHours(0, 0, 0, 0);
             if (nextDate > endDate) {
-              isWithinRange = false;
+              isValid = false;
             }
           }
 
@@ -265,7 +289,7 @@ export default function DashboardAsistencia() {
 
     setDeleting(sessionId);
     try {
-      await attendanceService.deleteSchedule(sessionId);
+      await attendanceService.deleteSchedule(String(sessionId));
       // Eliminar de todas las listas
       setUpcomingSessions(prev => prev.filter(s => (s.external_id || s.id) !== sessionId));
       setTodaySchedules(prev => prev.filter(s => ((s as any).external_id || s.id) !== sessionId));
@@ -303,13 +327,14 @@ export default function DashboardAsistencia() {
       start_time: formData.get('start_time') as string,
       end_time: formData.get('end_time') as string,
       location: formData.get('location') as string,
+      program_id: (formData.get('program_id') as string) || undefined,
       specific_date: formData.get('specific_date') as string || undefined,
       start_date: formData.get('start_date') as string || undefined,
       end_date: formData.get('end_date') as string || undefined,
     };
 
     try {
-      await attendanceService.updateSchedule(sessionId, data);
+      await attendanceService.updateSchedule(sessionIdStr, data);
       setEditingSession(null);
       loadData(); // Recargar datos
       alert('Sesión actualizada correctamente');
@@ -425,7 +450,27 @@ export default function DashboardAsistencia() {
                     <div className="flex items-start justify-between mb-3">
                       <div>
                         <h3 className="font-semibold text-gray-900 dark:text-white">{schedule.name}</h3>
-                        {location && <p className="text-sm text-gray-500 dark:text-gray-400">{location}</p>}
+                        {(() => {
+                          const prog = programs.find(p => {
+                            const pid = (schedule as any).program_id || (schedule as any).programId || null;
+                            if (!pid) return false;
+                            // Match by external_id or numeric id
+                            return p.external_id === String(pid) || p.id === pid || String(p.id) === String(pid) || p.name === (schedule as any).program_name;
+                          }) || null;
+
+                          const programDisplayName = schedule.program_name || prog?.name || null;
+                          if (!programDisplayName) return null;
+
+                          const progColor = prog?.color || '#3B82F6';
+                          const label = PROGRAM_COLORS.find(c => c.value.toLowerCase() === progColor.toLowerCase())?.label || 'Programa';
+
+                          return (
+                            <div className="mt-1">
+                              <p className="text-sm text-gray-700 dark:text-gray-300">{programDisplayName}</p>
+                            </div>
+                          );
+                        })()}
+                        {location && <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{location}</p>}
                       </div>
                       <span className={`px-2 py-1 rounded-full text-xs font-bold ${isCompleted
                         ? 'bg-green-100 text-green-700'
@@ -650,13 +695,13 @@ export default function DashboardAsistencia() {
                       required
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
                     >
-                      <option value="Lunes">Lunes</option>
-                      <option value="Martes">Martes</option>
-                      <option value="Miércoles">Miércoles</option>
-                      <option value="Jueves">Jueves</option>
-                      <option value="Viernes">Viernes</option>
-                      <option value="Sábado">Sábado</option>
-                      <option value="Domingo">Domingo</option>
+                      <option value="monday">Lunes</option>
+                      <option value="tuesday">Martes</option>
+                      <option value="wednesday">Miércoles</option>
+                      <option value="thursday">Jueves</option>
+                      <option value="friday">Viernes</option>
+                      <option value="saturday">Sábado</option>
+                      <option value="sunday">Domingo</option>
                     </select>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
@@ -713,6 +758,19 @@ export default function DashboardAsistencia() {
                   placeholder="Ej: Gimnasio principal"
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Programa (opcional)</label>
+                <select
+                  name="program_id"
+                  defaultValue={(editingSession as any).program_id || (editingSession as any).programId || ''}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                >
+                  <option value="">Sin programa</option>
+                  {programs.map(p => (
+                    <option key={p.external_id} value={p.external_id}>{p.name}</option>
+                  ))}
+                </select>
               </div>
               <div className="flex gap-3 pt-4">
                 <button

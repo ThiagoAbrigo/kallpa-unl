@@ -65,6 +65,23 @@ export interface AttendanceHistory {
 // Alias para compatibilidad
 export type HistoryRecord = AttendanceHistory;
 
+// Interface para Programas
+export interface Program {
+  id: number;
+  external_id: string;
+  name: string;
+  description?: string;
+  color?: string;
+  participants_count?: number;
+  schedules_count?: number;
+}
+
+export interface CreateProgramData {
+  name: string;
+  description?: string;
+  color?: string;
+}
+
 // Interface para crear sesiones
 export interface CreateScheduleData {
   name: string;
@@ -75,6 +92,7 @@ export interface CreateScheduleData {
   capacity?: number;
   max_slots?: number; // Added to match Schedule Object
   description?: string;
+  program_id?: string;  // ID del programa asociado
   // Para sesiones recurrentes
   day_of_week?: string;
   start_date?: string;   // Opcional: desde cuándo aplica

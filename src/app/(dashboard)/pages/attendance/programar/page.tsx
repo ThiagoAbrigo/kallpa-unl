@@ -4,16 +4,16 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { attendanceService } from '@/services/attendance.services';
-import type { Schedule } from '@/types/attendance';
+import type { Schedule, Program } from '@/types/attendance';
 
 const DAYS_OF_WEEK = [
-  { value: 'Lunes', label: 'Lunes' },
-  { value: 'Martes', label: 'Martes' },
-  { value: 'Miércoles', label: 'Miércoles' },
-  { value: 'Jueves', label: 'Jueves' },
-  { value: 'Viernes', label: 'Viernes' },
-  { value: 'Sábado', label: 'Sábado' },
-  { value: 'Domingo', label: 'Domingo' },
+  { value: 'monday', label: 'Lunes' },
+  { value: 'tuesday', label: 'Martes' },
+  { value: 'wednesday', label: 'Miércoles' },
+  { value: 'thursday', label: 'Jueves' },
+  { value: 'friday', label: 'Viernes' },
+  { value: 'saturday', label: 'Sábado' },
+  { value: 'sunday', label: 'Domingo' },
 ];
 
 type SessionType = 'recurring' | 'specific';
@@ -31,6 +31,7 @@ export default function Programar() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [programs, setPrograms] = useState<Program[]>([]);
   const [sessionType, setSessionType] = useState<SessionType>('recurring');
 
   const [formData, setFormData] = useState({
@@ -42,6 +43,7 @@ export default function Programar() {
     location: '',
     capacity: 30,
     description: '',
+    program_id: '',
     // Campos para sesión recurrente
     start_date: '',
     end_date: '',
@@ -56,28 +58,28 @@ export default function Programar() {
   ];
 
   useEffect(() => {
-    loadSchedules();
+    loadData();
   }, []);
 
-  // Mapeo para normalizar días de la semana
+  // Mapeo para normalizar días de la semana a inglés minúscula (formato del backend)
   const normalizeDayOfWeek = (day: string): string => {
     if (!day) return '';
 
     const dayLower = day.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // Normalizar y quitar acentos para comparación
 
     const dayMap: Record<string, string> = {
-      'monday': 'Lunes', 'lunes': 'Lunes',
-      'tuesday': 'Martes', 'martes': 'Martes',
-      'wednesday': 'Miércoles', 'miercoles': 'Miércoles',
-      'thursday': 'Jueves', 'jueves': 'Jueves',
-      'friday': 'Viernes', 'viernes': 'Viernes',
-      'saturday': 'Sábado', 'sabado': 'Sábado',
-      'sunday': 'Domingo', 'domingo': 'Domingo',
+      'monday': 'monday', 'lunes': 'monday',
+      'tuesday': 'tuesday', 'martes': 'tuesday',
+      'wednesday': 'wednesday', 'miercoles': 'wednesday',
+      'thursday': 'thursday', 'jueves': 'thursday',
+      'friday': 'friday', 'viernes': 'friday',
+      'saturday': 'saturday', 'sabado': 'saturday',
+      'sunday': 'sunday', 'domingo': 'sunday',
     };
     return dayMap[dayLower] || day || '';
   };
 
-  const loadSchedules = async () => {
+  const loadData = async () => {
     try {
       const res = await attendanceService.getSchedules();
       const rawSchedules = res.data.data || [];
@@ -136,6 +138,7 @@ export default function Programar() {
         location: formData.location || undefined,
         max_slots: Number(formData.capacity), // Map capacity to max_slots
         description: formData.description || undefined,
+        program_id: formData.program_id || undefined,
       };
 
       if (sessionType === 'recurring') {

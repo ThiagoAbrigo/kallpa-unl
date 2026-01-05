@@ -49,10 +49,6 @@ export const NAV_DATA: NavSection[] = [
             title: "Historial",
             url: "/pages/attendance/historial",
           },
-          {
-            title: "Programar",
-            url: "/pages/attendance/programar",
-          },
         ],
       },
       {
