@@ -125,7 +125,6 @@ export default function Registro() {
         setParticipants([]);
       }
     } catch (error) {
-      console.error('Error loading data:', error);
     } finally {
       setLoading(false);
     }
@@ -149,7 +148,6 @@ export default function Registro() {
         setCurrentProgram(program);
       }
     } catch (error) {
-      console.error('Error loading participants:', error);
       setParticipants([]);
     }
   };
@@ -198,7 +196,6 @@ export default function Registro() {
       setIsEditing(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (error) {
-      console.error('Error saving attendance:', error);
       alert('Error al guardar la asistencia');
     } finally {
       setSaving(false);

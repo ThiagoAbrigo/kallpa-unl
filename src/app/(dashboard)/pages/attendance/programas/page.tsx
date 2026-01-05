@@ -52,7 +52,6 @@ export default function ProgramasPage() {
       const res = await attendanceService.getPrograms();
       setPrograms(res.data.data || []);
     } catch (error) {
-      console.error('Error loading programs:', error);
     } finally {
       setLoading(false);
     }
@@ -98,7 +97,6 @@ export default function ProgramasPage() {
       handleCloseModal();
       loadPrograms();
     } catch (error) {
-      console.error('Error saving program:', error);
       alert('Error al guardar el programa');
     } finally {
       setSaving(false);
@@ -116,7 +114,6 @@ export default function ProgramasPage() {
       alert('Programa eliminado correctamente');
       loadPrograms();
     } catch (error) {
-      console.error('Error deleting program:', error);
       alert('Error al eliminar el programa');
     } finally {
       setDeleting(null);
@@ -137,7 +134,6 @@ export default function ProgramasPage() {
       }));
       setProgramParticipants(normalized);
     } catch (error) {
-      console.error('Error loading participants:', error);
       setProgramParticipants([]);
     } finally {
       setLoadingParticipants(false);

@@ -72,7 +72,6 @@ export default function Participantes() {
       })) as Participant[];
       setParticipants(normalized);
     } catch (error) {
-      console.error('Error loading participants:', error);
     } finally {
       setLoading(false);
     }
@@ -91,7 +90,6 @@ export default function Participantes() {
       })) as Participant[];
       setPasantesData(normalized);
     } catch (error) {
-      console.error('Error loading pasantes:', error);
     }
   };
 
@@ -129,7 +127,6 @@ export default function Participantes() {
       setAttendanceStats(newStats);
 
     } catch (error) {
-      console.error('Error loading participants:', error);
     } finally {
       setLoading(false);
     }

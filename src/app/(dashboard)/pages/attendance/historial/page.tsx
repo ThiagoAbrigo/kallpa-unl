@@ -83,7 +83,6 @@ export default function Historial() {
       const normalizedHistory = normalizeHistoryData(rawHistory);
       setHistory(normalizedHistory);
     } catch (error) {
-      console.error('Error loading data:', error);
     } finally {
       setLoading(false);
     }
@@ -112,7 +111,6 @@ export default function Historial() {
       const normalizedHistory = normalizeHistoryData(rawHistory);
       setHistory(normalizedHistory);
     } catch (error) {
-      console.error('Error loading history:', error);
     }
   };
 
@@ -124,7 +122,6 @@ export default function Historial() {
       const records = sessionData.records || [];
 
       if (records.length === 0) {
-        console.warn('No attendance records found for this session');
         alert('No se encontraron registros de asistencia para esta sesión');
         return;
       }
@@ -164,7 +161,6 @@ export default function Historial() {
       setSessionDetail(sessionDetail as SessionDetail);
       setShowModal(true);
     } catch (error) {
-      console.error('Error loading session detail:', error);
       alert('Error al cargar los detalles de la sesión');
     }
   };
@@ -184,7 +180,6 @@ export default function Historial() {
       loadHistory();
       alert('Registro de asistencia eliminado correctamente');
     } catch (error) {
-      console.error('Error deleting attendance:', error);
       alert('Error al eliminar el registro');
     }
   };

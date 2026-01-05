@@ -110,7 +110,6 @@ export default function Programar() {
 
       setSchedules(normalizedSchedules);
     } catch (error) {
-      console.error('Error loading schedules:', error);
     } finally {
       setLoading(false);
     }
@@ -160,7 +159,6 @@ export default function Programar() {
       alert('Sesión creada correctamente');
       router.push('/pages/attendance');
     } catch (error) {
-      console.error('Error creating schedule:', error);
       alert('Error al crear la sesión');
     } finally {
       setSaving(false);

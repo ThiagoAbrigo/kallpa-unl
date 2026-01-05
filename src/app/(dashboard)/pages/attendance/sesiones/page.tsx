@@ -58,7 +58,6 @@ export default function Sesiones() {
       });
       setSchedules(normalized);
     } catch (error) {
-      console.error('Error loading schedules:', error);
     } finally {
       setLoading(false);
     }
@@ -90,7 +89,6 @@ export default function Sesiones() {
       await attendanceService.deleteSchedule(sessionId);
       setSchedules(prev => prev.filter(s => (s.external_id || s.id) !== sessionId));
     } catch (error) {
-      console.error('Error deleting session:', error);
       alert('Error al eliminar la sesión');
     } finally {
       setDeleting(null);
@@ -128,7 +126,6 @@ export default function Sesiones() {
       setEditingSession(null);
       loadSchedules();
     } catch (error) {
-      console.error('Error updating session:', error);
       alert('Error al actualizar la sesión');
     }
   };

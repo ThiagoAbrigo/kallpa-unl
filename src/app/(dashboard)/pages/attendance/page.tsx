@@ -72,7 +72,6 @@ export default function DashboardAsistencia() {
         const historyRes = await attendanceService.getHistory(todayStr, todayStr);
         historyData = historyRes.data.data || [];
       } catch (error) {
-        console.error('Error loading history (backend issue):', error);
       }
 
       const [participantsRes, schedulesRes] = await Promise.all([
@@ -97,7 +96,6 @@ export default function DashboardAsistencia() {
       setUpcomingSessions(upcoming);
 
     } catch (error) {
-      console.error('Error loading data:', error);
     } finally {
       setLoading(false);
     }
@@ -286,7 +284,6 @@ export default function DashboardAsistencia() {
       alert('Sesión eliminada correctamente');
       loadData(); // Recargar todos los datos
     } catch (error) {
-      console.error('Error deleting session:', error);
       alert('Error al eliminar la sesión');
     } finally {
       setDeleting(null);
@@ -329,7 +326,6 @@ export default function DashboardAsistencia() {
       loadData(); // Recargar datos
       alert('Sesión actualizada correctamente');
     } catch (error) {
-      console.error('Error updating session:', error);
       alert('Error al actualizar la sesión');
     }
   };
