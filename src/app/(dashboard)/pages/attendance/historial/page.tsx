@@ -142,9 +142,29 @@ export default function Historial() {
     if (!scheduleId) return; // Prevent invalid URL request
     try {
       const res = await attendanceService.getSessionDetail(scheduleId, date);
-      // New endpoint returns { data: { schedule_id, date, records: [...], stats: {...} } }
-      const sessionData = res.data.data || {};
-      const records = sessionData.records || [];
+
+      let records: any[] = [];
+      let sessionStats: any = null;
+      let scheduleInfo: any = null;
+
+      // Detectar si la respuesta es un array plano (lista de asistencias) o un objeto estructurado
+      const responseData = res.data.data;
+
+      if (Array.isArray(responseData)) {
+        // Es un array plano
+        records = responseData;
+        // Tomamos info del horario del primer registro si existe
+        if (records.length > 0) {
+          scheduleInfo = records[0].schedule;
+        }
+      } else if (responseData && typeof responseData === 'object') {
+        // Es un objeto estructurado { records: [], stats: {}, schedule: {} }
+        records = responseData.records || [];
+        sessionStats = responseData.stats;
+        scheduleInfo = responseData.schedule;
+      }
+
+
 
       if (records.length === 0) {
         alert('No se encontraron registros de asistencia para esta sesión');
@@ -154,17 +174,18 @@ export default function Historial() {
       // Map records to the expected attendances format
       const attendances = records.map((r: any) => ({
         participant: {
-          id: r.participant_id,
-          name: r.participant_name
+          id: r.participant?.external_id || r.participant?.id,
+          name: r.participant?.first_name
+            ? `${r.participant.first_name} ${r.participant.last_name}`.trim()
+            : (r.participant_name || 'Participante')
         },
         status: r.status
       }));
 
       // Use stats from backend directly, or compute if missing
-      const stats = sessionData.stats || {
+      const stats = sessionStats || {
         present: attendances.filter((a: any) => a.status?.toUpperCase() === 'PRESENT').length,
         absent: attendances.filter((a: any) => a.status?.toUpperCase() === 'ABSENT').length,
-        justified: attendances.filter((a: any) => a.status?.toUpperCase() === 'JUSTIFIED').length,
         total: attendances.length
       };
 
@@ -172,13 +193,12 @@ export default function Historial() {
       const normalizedStats = {
         present: stats.presentes ?? stats.present ?? 0,
         absent: stats.ausentes ?? stats.absent ?? 0,
-        justified: stats.justificados ?? stats.justified ?? 0,
         total: stats.total ?? attendances.length
       };
 
       const sessionDetail = {
         date,
-        schedule: sessionData.schedule || { external_id: scheduleId, name: 'Sesión' },
+        schedule: scheduleInfo || { external_id: scheduleId, name: 'Sesión' },
         attendances,
         stats: normalizedStats
       };
