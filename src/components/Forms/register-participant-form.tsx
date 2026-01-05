@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import InputGroup from "@/components/FormElements/InputGroup";
 import { participantService } from "@/services/participant.service";
 import { Select } from "../FormElements/select";
@@ -49,6 +49,13 @@ const RegisterParticipantForm = () => {
     responsiblePhone: "",
   });
 
+  // Regla para restringir programas según edad (> 18 solo Funcional)
+  useEffect(() => {
+    if (Number(formData.age) > 18 && formData.program === "INICIACION") {
+      setFormData((prev) => ({ ...prev, program: "FUNCIONAL" }));
+    }
+  }, [formData.age, formData.program]);
+
   const isMinor = Number(formData.age) > 0 && Number(formData.age) < 18;
   const clearFieldError = (field: string) => {
     setErrors((prev) => {
@@ -67,12 +74,17 @@ const RegisterParticipantForm = () => {
     { value: "PARTICIPANTE", label: "Participante General" },
   ];
 
-  // Opciones de programa según API
-  const programOptions = [
+  // Opciones base
+  const allProgramOptions = [
     { value: "", label: "Seleccione un programa" },
     { value: "INICIACION", label: "Iniciación" },
     { value: "FUNCIONAL", label: "Funcional" },
   ];
+
+  // Filtrar opciones si es mayor a 18 años
+  const programOptions = Number(formData.age) > 18
+    ? allProgramOptions.filter(p => p.value !== "INICIACION")
+    : allProgramOptions;
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
