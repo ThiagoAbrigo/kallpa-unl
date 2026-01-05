@@ -1,32 +1,48 @@
 "use client";
+
 import React, { useState } from "react";
 import InputGroup from "@/components/FormElements/InputGroup";
 import { Select } from "../FormElements/select";
-import { FiSave } from "react-icons/fi";
+import { FiEdit, FiSave } from "react-icons/fi";
 import { userService } from "@/services/user.services";
 import { CreateUserRequest } from "@/types/user";
-import { Alert } from "@/components/ui-elements/alert";
+import ErrorMessage from "../FormElements/errormessage";
+import { ShowcaseSection } from "../Layouts/showcase-section";
+import { Alert } from "../ui-elements/alert";
 
 export const UserForm = () => {
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    dni: "",
-    phone: "",
-    email: "",
-    password: "",
-    role: "" as "DOCENTE" | "PASANTE" | "ADMINISTRADOR" |  "",
-  });
-
   // errores por campo
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // alert general
   const [showAlert, setShowAlert] = useState(false);
-  const [alertVariant, setAlertVariant] = useState<"success" | "error">("success");
-  const [alertMessage, setAlertMessage] = useState({
-    title: "",
-    description: "",
+  const [alertType, setAlertType] = useState<"success" | "error" | "warning">("success");
+  const [alertTitle, setAlertTitle] = useState("");
+  const [alertDescription, setAlertDescription] = useState("");
+
+  const showTemporaryAlert = (
+    type: "success" | "error" | "warning",
+    title: string,
+    description: string,
+    duration = 3000
+  ) => {
+    setAlertType(type);
+    setAlertTitle(title);
+    setAlertDescription(description);
+    setShowAlert(true);
+
+    setTimeout(() => setShowAlert(false), duration);
+  };
+
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    dni: "",
+    phone: "",
+    address: "",
+    email: "",
+    password: "",
+    role: "" as "DOCENTE" | "PASANTE" | "ADMINISTRADOR" | "",
   });
 
   const participantTypeOptions = [
@@ -41,37 +57,12 @@ export const UserForm = () => {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-
-    // limpia error del campo al escribir
-    setErrors((prev) => {
-      const copy = { ...prev };
-      delete copy[name];
-      return copy;
-    });
+    setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-    setShowAlert(false);
-
-    // validaciones por campo
-    const newErrors: Record<string, string> = {};
-    if (!formData.firstName) newErrors.firstName = "Nombres requeridos";
-    if (!formData.lastName) newErrors.lastName = "Apellidos requeridos";
-    if (!formData.dni || formData.dni.length < 10)
-      newErrors.dni = "La cédula debe tener al menos 10 dígitos";
-    if (!formData.email) newErrors.email = "Email requerido";
-    else if (!/\S+@\S+\.\S+/.test(formData.email))
-      newErrors.email = "Email inválido";
-    if (!formData.password || formData.password.length < 6)
-      newErrors.password = "Mínimo 6 caracteres";
-    if (!formData.role) newErrors.role = "Debe seleccionar un rol";
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
 
     try {
       const payload: CreateUserRequest = {
@@ -79,6 +70,7 @@ export const UserForm = () => {
         lastName: formData.lastName,
         dni: formData.dni,
         phone: formData.phone || undefined,
+        address: formData.address,
         email: formData.email,
         password: formData.password,
         role: formData.role as "DOCENTE" | "PASANTE" | "ADMINISTRADOR",
@@ -86,119 +78,152 @@ export const UserForm = () => {
 
       await userService.createUser(payload);
 
-      // si todo salió bien
-      setAlertVariant("success");
-      setAlertMessage({
-        title: "Usuario creado",
-        description: "El usuario se registró correctamente",
-      });
-      setShowAlert(true);
+      showTemporaryAlert(
+        "success",
+        "Éxito",
+        "Usuario registrado correctamente"
+      );
 
-      // limpiar formulario
       setFormData({
         firstName: "",
         lastName: "",
         dni: "",
         phone: "",
+        address: "",
         email: "",
         password: "",
         role: "",
       });
-
-      setTimeout(() => setShowAlert(false), 3000);
     } catch (error: any) {
-      console.error("Error creando usuario:", error);
-
-      setAlertVariant("error");
-      setAlertMessage({
-        title: "Error",
-        description:
-          error?.response?.data?.msg ||  // mensaje del backend si existe
-          "No se pudo registrar el usuario", // fallback
-      });
-      setShowAlert(true);
-      setTimeout(() => setShowAlert(false), 3000);
+      if (error?.data) {
+        setErrors(error.data);
+      } else {
+        showTemporaryAlert(
+          "error",
+          "Error",
+          error?.msg || "Error al registrar usuario"
+        );
+      }
     }
-
-
   };
 
   return (
-    <div className="rounded-[10px] border border-stroke bg-white shadow-1 dark:border-dark-3 dark:bg-gray-dark dark:shadow-card">
-      <div className="flex items-center justify-between border-b px-7 py-6">
-        <h3 className="text-2xl font-bold">Registro de Cuenta</h3>
-      </div>
-
-      <form onSubmit={handleSubmit} className="p-6.5 space-y-4">
-        {/* alert */}
-        {showAlert && (
+    <ShowcaseSection
+      icon={<FiEdit size={24} />}
+      title="Registro de Nueva Cuenta"
+      description="Ingresa los datos personales para crear una cuenta nueva"
+    >
+      {showAlert && (
+        <div className="mb-6">
           <Alert
-            variant={alertVariant}
-            title={alertMessage.title}
-            description={alertMessage.description}
+            variant={alertType}
+            title={alertTitle}
+            description={alertDescription}
           />
-        )}
+        </div>
+      )}
 
-        <InputGroup
-          label="Nombres"
-          name="firstName"
-          type="text"
-          placeholder="Ej. Juan"
-          value={formData.firstName}
-          handleChange={handleChange}
-        />
-        {errors.firstName && <p className="text-xs text-red-500">{errors.firstName}</p>}
+      <form onSubmit={handleSubmit}>
+        <div className="mb-4.5 grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <div>
+            <InputGroup
+              label="Nombres"
+              name="firstName"
+              type="text"
+              placeholder="Ej. Juan"
+              value={formData.firstName}
+              handleChange={handleChange}
+            />
+            <ErrorMessage message={errors.firstName} />
+          </div>
 
-        <InputGroup
-          label="Apellidos"
-          name="lastName"
-          type="text"
-          placeholder="Ej. Pérez"
-          value={formData.lastName}
-          handleChange={handleChange}
-        />
-        {errors.lastName && <p className="text-xs text-red-500">{errors.lastName}</p>}
+          <div>
+            <InputGroup
+              label="Apellidos"
+              name="lastName"
+              type="text"
+              placeholder="Ej. Pérez"
+              value={formData.lastName}
+              handleChange={handleChange}
+            />
+            <ErrorMessage message={errors.lastName} />
+          </div>
+        </div>
 
-        <InputGroup
-          label="Cédula"
-          name="dni"
-          type="text"
-          placeholder="110XXXXXXX"
-          value={formData.dni}
-          handleChange={handleChange}
-        />
-        {errors.dni && <p className="text-xs text-red-500">{errors.dni}</p>}
+        <div className="mb-4.5 grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <div>
+            <InputGroup
+              label="Cédula"
+              name="dni"
+              type="text"
+              placeholder="110XXXXXXX"
+              value={formData.dni}
+              handleChange={handleChange}
+            />
+            <ErrorMessage message={errors.dni} />
+          </div>
 
-        <InputGroup
-          label="Email"
-          name="email"
-          type="email"
-          placeholder="john@example.com"
-          value={formData.email}
-          handleChange={handleChange}
-        />
-        {errors.email && <p className="text-xs text-red-500">{errors.email}</p>}
+          <div>
+            <InputGroup
+              label="Teléfono"
+              name="phone"
+              type="number"
+              placeholder="0999999999"
+              value={formData.phone}
+              handleChange={handleChange}
+            />
+          </div>
+        </div>
 
-        <InputGroup
-          label="Password"
-          name="password"
-          type="password"
-          placeholder="******"
-          value={formData.password}
-          handleChange={handleChange}
-        />
-        {errors.password && <p className="text-xs text-red-500">{errors.password}</p>}
+        <div className="mb-4.5">
+          <InputGroup
+            label="Dirección"
+            name="address"
+            type="text"
+            placeholder="Av. Universitaria y Calle Principal"
+            value={formData.address}
+            handleChange={handleChange}
+          />
+        </div>
 
-        <Select
-          name="role"
-          label="Rol"
-          placeholder="Seleccione un rol"
-          items={participantTypeOptions}
-          value={formData.role}
-          onChange={handleChange}
-          className="w-full"
-        />
-        {errors.role && <p className="text-xs text-red-500">{errors.role}</p>}
+        <div className="mb-4.5 grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <div>
+            <InputGroup
+              label="Email"
+              name="email"
+              type="email"
+              placeholder="john@example.com"
+              value={formData.email}
+              handleChange={handleChange}
+            />
+            <ErrorMessage message={errors.email} />
+          </div>
+
+          <div>
+            <InputGroup
+              label="Password"
+              name="password"
+              type="password"
+              placeholder="******"
+              value={formData.password}
+              handleChange={handleChange}
+            />
+            <ErrorMessage message={errors.password} />
+          </div>
+        </div>
+
+        <div className="mb-4.5">
+          <Select
+            name="role"
+            label="Rol"
+            items={participantTypeOptions}
+            value={formData.role}
+            onChange={handleChange}
+            placeholder="Seleccione un rol"
+            className="w-full"
+          />
+          <ErrorMessage message={errors.role} />
+        </div>
 
         <button
           type="submit"
@@ -208,6 +233,6 @@ export const UserForm = () => {
           Registrar Cuenta
         </button>
       </form>
-    </div>
+    </ShowcaseSection>
   );
 };
