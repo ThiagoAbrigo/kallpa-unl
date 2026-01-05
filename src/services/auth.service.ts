@@ -15,7 +15,6 @@ const API_URL = "http://localhost:5000/api";
           body: JSON.stringify(credentials),
         });
       } catch {
-        // 👇 AQUÍ CAMBIAS EL "Failed to fetch"
         throw new Error("Error en el sistema, vuelva a intentarlo.");
       }
 

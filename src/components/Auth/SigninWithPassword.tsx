@@ -77,7 +77,6 @@ export default function SigninWithPassword() {
         value={data.password}
         icon={<PasswordIcon />}
       />
-
       <div className="mb-4.5">
         <button
           type="submit"
