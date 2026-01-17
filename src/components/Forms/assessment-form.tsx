@@ -14,7 +14,7 @@ export function AssessmentForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [frequencyMonths, setFrequencyMonths] = useState<number>(3);
+  const [frequencyMonths, setFrequencyMonths] = useState("");
   const [exercises, setExercises] = useState<{ name: string; unit: string }[]>([
     { name: "", unit: "" },
   ]);
@@ -37,63 +37,66 @@ export function AssessmentForm() {
       return newErrors;
     });
   };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const payload: TestData = {
+    // Limpiar errores previos
+    setErrors({});
+
+    const payload: any = {
       name: name.trim(),
       description: description.trim(),
-      frequency_months: frequencyMonths,
       exercises: exercises.map(e => ({
         name: e.name.trim(),
         unit: e.unit.trim(),
       })),
     };
-    
-    setErrors({});
+
+    if (frequencyMonths !== "") {
+      payload.frequency_months = Number(frequencyMonths);
+    }
 
     try {
       setLoading(true);
       const res = await saveTest(payload);
 
-      if (res.status === "ok") {
+      // Caso 1: Éxito (code 200, status "ok")
+      if (res.code === 200 && res.status === "ok") {
         setAlertVariant("success");
         setAlertMessage({
           title: "Test creado correctamente",
-          description: "El test se guardó exitosamente",
+          description: res.msg || "El test se guardó exitosamente",
         });
         setShowAlert(true);
         setName("");
         setDescription("");
-        setFrequencyMonths(3);
+        setFrequencyMonths("");
         setExercises([{ name: "", unit: "" }]);
         setTimeout(() => setShowAlert(false), 3000);
-      } else {
-        if (res.msg && typeof res.msg === "object") {
-          // Mapear errores de backend al estado de errors
+      }
+      // Caso 2: Error de validación (code 400, data.validation_errors)
+      else if (res.code === 400) {
+        const data = res.data as any;
+        if (data?.validation_errors && typeof data.validation_errors === "object") {
           const fieldErrors: Record<string, string> = {};
-          Object.entries(res.msg).forEach(([key, value]) => {
-            // Si es un string directo, lo asignamos
+          Object.entries(data.validation_errors).forEach(([key, value]) => {
             if (typeof value === "string") {
               fieldErrors[key] = value;
-            } else if (Array.isArray(value)) {
-              // Si quieres manejar errores por índice de ejercicio, podrías mapearlos aquí
-              fieldErrors[key] = "Algunos ejercicios son inválidos";
             }
           });
           setErrors(fieldErrors);
-        } else {
-          setAlertVariant("error");
-          setAlertMessage({
-            title: "Error",
-            description:
-              typeof res.msg === "string"
-                ? res.msg
-                : "Error al guardar el test",
-          });
-          setShowAlert(true);
-          setTimeout(() => setShowAlert(false), 3000);
         }
+      }
+      // Caso 3: Error interno (code 500 o error general)
+      else if (res.code === 500 || res.status === "error") {
+        setAlertVariant("error");
+        setAlertMessage({
+          title: "Error",
+          description: res.msg || "Error al guardar el test",
+        });
+        setShowAlert(true);
+        setTimeout(() => setShowAlert(false), 3000);
       }
     } catch (err) {
       setAlertVariant("error");
@@ -160,8 +163,13 @@ export function AssessmentForm() {
                 className="flex-grow"
                 value={name}
                 handleChange={(e) => {
-                  setName(e.target.value);
-                  clearFieldError("name");
+                  const value = e.target.value;
+                  setName(value);
+                  if (value.trim() && value.trim().length < 5) {
+                    setErrors(prev => ({ ...prev, name: "Debe escribir más de 4 caracteres" }));
+                  } else {
+                    clearFieldError("name");
+                  }
                 }}
                 iconPosition="left"
                 icon={<FiClipboard className="text-gray-400" size={18} />}
@@ -170,16 +178,24 @@ export function AssessmentForm() {
             </div>
             <InputGroup
               label="Frecuencia (en meses)"
-              type="number"
-              placeholder="3"
+              type="text"
+              placeholder="1–12"
               className="flex-grow"
-              value={frequencyMonths.toString()}
-              handleChange={(e) => setFrequencyMonths(Number(e.target.value))}
+              value={frequencyMonths}
+              handleChange={(e) => {
+                const value = e.target.value;
+                if (value === "" || (value.length <= 2 && /^\d*$/.test(value))) {
+                  setFrequencyMonths(value);
+                  clearFieldError("frequency_months");
+                }
+              }}
               iconPosition="left"
               icon={<FiCalendar className="text-gray-400" size={18} />}
             />
+            <ErrorMessage message={errors.frequency_months} />
+
             <TextAreaGroup
-              label="Descripción"
+              label="Descripción (opcional)"
               placeholder="Describa el objetivo del test..."
               value={description}
               onChange={(e) => {
@@ -231,77 +247,91 @@ export function AssessmentForm() {
           </div>
 
           <div className="space-y-3">
-          {errors.exercises && <ErrorMessage message={errors.exercises} />}
+            {errors.exercises && <ErrorMessage message={errors.exercises} />}
+            {exercises.map((exercise, idx) => {
+              const exerciseNameErrorKey = `exercises[${idx}].name`;
+              const exerciseUnitErrorKey = `exercises[${idx}].unit`;
 
-            {exercises.map((exercise, idx) => (
-              <div
-                key={idx}
-                className="grid grid-cols-1 gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4 transition-colors dark:border-slate-800 dark:bg-[#0f172a] lg:grid-cols-[30px_1fr_150px_40px] lg:items-end"
-              >
-                <div className="hidden cursor-grab justify-center pb-3 text-slate-400 dark:text-slate-600 lg:flex">
-                  ⠿
-                </div>
-                <InputGroup
-                  label="Campo"
-                  type="text"
-                  placeholder="Ingresar nombre del ejercicio"
-                  value={exercise.name}
-                  handleChange={(e) => {
-                    const copy = [...exercises];
-                    copy[idx].name = e.target.value;
-                    setExercises(copy);
-
-                    clearFieldError("exercises");
-                  }}
-                />
-                <Select
-                  label="Unidad"
-                  items={[
-                    { value: "repeticiones", label: "Repeticiones" },
-                    { value: "segundos", label: "Segundos" },
-                  ]}
-                  value={exercise.unit}
-                  onChange={(e) => {
-                    const copy = [...exercises];
-                    copy[idx].unit = e.target.value;
-                    setExercises(copy);
-
-                    clearFieldError("exercises");
-                  }}
-                  placeholder="Seleccionar"
-                />
-                <div className="flex justify-end lg:justify-center lg:pb-3">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setExercises(exercises.filter((_, i) => i !== idx))
-                    }
-                    className="flex justify-center pb-3 text-slate-400 transition-colors hover:text-red-500"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+              return (
+                <div
+                  key={idx}
+                  className="grid grid-cols-1 gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4 transition-colors dark:border-slate-800 dark:bg-[#0f172a] lg:grid-cols-[30px_1fr_150px_40px] lg:items-end"
+                >
+                  <div className="hidden cursor-grab justify-center pb-3 text-slate-400 dark:text-slate-600 lg:flex">
+                    ⠿
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <InputGroup
+                      label="Campo"
+                      type="text"
+                      placeholder="Ingresar nombre del ejercicio"
+                      value={exercise.name}
+                      handleChange={(e) => {
+                        const copy = [...exercises];
+                        copy[idx].name = e.target.value;
+                        setExercises(copy);
+                        clearFieldError(exerciseNameErrorKey);
+                      }}
+                    />
+                    {errors[exerciseNameErrorKey] && (
+                      <ErrorMessage message={errors[exerciseNameErrorKey]} />
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <Select
+                      label="Unidad"
+                      items={[
+                        { value: "repeticiones", label: "Repeticiones" },
+                        { value: "segundos", label: "Segundos" },
+                      ]}
+                      value={exercise.unit}
+                      onChange={(e) => {
+                        const copy = [...exercises];
+                        copy[idx].unit = e.target.value;
+                        setExercises(copy);
+                        clearFieldError(exerciseUnitErrorKey);
+                      }}
+                      placeholder="Seleccionar"
+                    />
+                    {errors[exerciseUnitErrorKey] && (
+                      <ErrorMessage message={errors[exerciseUnitErrorKey]} />
+                    )}
+                  </div>
+                  <div className="flex justify-end lg:justify-center lg:pb-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setExercises(exercises.filter((_, i) => i !== idx));
+                        clearFieldError("exercises");
+                      }}
+                      className="flex justify-center pb-3 text-slate-400 transition-colors hover:text-red-500"
                     >
-                      <path d="M3 6h18" />
-                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                    </svg>
-                  </button>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M3 6h18" />
+                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             <button
               type="button"
-              onClick={() =>
-                setExercises([...exercises, { name: "", unit: "" }])
-              }
+              onClick={() => {
+                setExercises([...exercises, { name: "", unit: "" }]);
+                clearFieldError("exercises");
+              }}
               className="mt-4 flex w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 p-8 transition-all hover:border-slate-300 hover:bg-slate-100 dark:border-slate-800 dark:hover:border-slate-700 dark:hover:bg-slate-800/30"
             >
               <div className="rounded-full bg-slate-200 p-2 text-slate-500 dark:bg-slate-800">
