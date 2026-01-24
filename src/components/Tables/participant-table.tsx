@@ -10,11 +10,12 @@ import { FiChevronDown, FiFilter, FiSearch } from "react-icons/fi";
 interface ParticipantsTableProps {
   data: Participant[];
   onStatusChange?: () => Promise<void> | void;
+  onEdit?: (participant: Participant) => void;
 }
 
-export function ParticipantsTable({ data, onStatusChange }: ParticipantsTableProps) {
+export function ParticipantsTable({ data, onStatusChange, onEdit }: ParticipantsTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("TODOS");
+  const [statusFilter, setStatusFilter] = useState("Todos");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const statusOptions = ["TODOS", "ACTIVO", "INACTIVO"];
@@ -39,10 +40,9 @@ export function ParticipantsTable({ data, onStatusChange }: ParticipantsTablePro
   }, [onStatusChange]);
 
   const columns = useMemo(
-    () => getParticipantColumns({ onToggleStatus: handleToggleStatus, loadingId }),
-    [handleToggleStatus, loadingId]
+    () => getParticipantColumns({ onToggleStatus: handleToggleStatus, onEdit, loadingId }),
+    [handleToggleStatus, onEdit, loadingId]
   );
-
   const filteredData = useMemo(() => {
     const term = searchTerm.toLowerCase().trim();
 
@@ -54,14 +54,12 @@ export function ParticipantsTable({ data, onStatusChange }: ParticipantsTablePro
         !term || fullName.includes(term) || dni.includes(term);
 
       const matchesStatus =
-        statusFilter === "TODOS" || item.status === statusFilter;
+        statusFilter === "Todos" || item.status === statusFilter;
 
       return matchesSearch && matchesStatus;
     });
   }, [searchTerm, statusFilter, data]);
-
   const isEmpty = filteredData.length === 0;
-
   return (
     <div className="flex flex-col gap-5">
       <div className="dark:border-strokedark dark:bg-meta-4 flex items-center gap-4 rounded-xl border border-stroke bg-gray-2 bg-white p-2 dark:border-dark-3 dark:bg-gray-dark">
@@ -126,4 +124,3 @@ export function ParticipantsTable({ data, onStatusChange }: ParticipantsTablePro
     </div>
   );
 }
-

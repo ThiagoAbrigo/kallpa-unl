@@ -6,14 +6,18 @@ import { ParticipantsTable } from "@/components/Tables/participant-table";
 import { participantService } from "@/services/participant.service";
 import type { Participant } from "@/types/participant";
 import Loader from "@/components/Loader/loader";
+import { EditParticipantModal } from "@/components/Modal/edit-participant-modal";
 
 export default function ParticipantPage() {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
+      setLoading(true);
       setError(null);
       const data = await participantService.getAll();
       setParticipants(data);
@@ -27,6 +31,20 @@ export default function ParticipantPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const handleEdit = (participant: Participant) => {
+    setSelectedParticipant(participant);
+    setIsEditModalOpen(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setSelectedParticipant(null);
+  };
+
+  const handleEditSuccess = () => {
+    fetchData();
+  };
 
   if (loading) {
     return (
@@ -77,9 +95,19 @@ export default function ParticipantPage() {
         </Link>
       </div>
       <div className="space-y-10">
-        <ParticipantsTable data={participants} onStatusChange={fetchData} />
+        <ParticipantsTable
+          data={participants}
+          onStatusChange={fetchData}
+          onEdit={handleEdit}
+        />
       </div>
+
+      <EditParticipantModal
+        isOpen={isEditModalOpen}
+        onClose={handleCloseEditModal}
+        participant={selectedParticipant}
+        onSuccess={handleEditSuccess}
+      />
     </div>
   );
 }
-
