@@ -233,7 +233,7 @@ export const participantService = {
 
     if (!response.ok) {
       throw result;
-    }    
+    }
 
     return result;
   },
@@ -243,13 +243,42 @@ export const participantService = {
       method: "GET",
       headers: this.getHeaders(),
     });
-  
+
     const result = await response.json();
-  
+
     if (!response.ok) {
       throw new Error(result.msg || "Error al obtener totales de participantes");
     }
-  
+
     return result.data;
-  }  
+  },
+
+  // Método para actualizar participante
+  async updateParticipant(externalId: string, data: Partial<Participant>) {
+    const payload: Record<string, any> = {};
+
+    // Solo enviar campos que tienen valor
+    if (data.firstName) payload.firstName = data.firstName;
+    if (data.lastName) payload.lastName = data.lastName;
+    if (data.phone !== undefined) payload.phone = data.phone;
+    if (data.email) payload.email = data.email;
+    if (data.address !== undefined) payload.address = data.address;
+    if (data.age !== undefined) payload.age = data.age;
+    if (data.dni) payload.dni = data.dni;
+
+    const response = await fetch(`${API_URL}/participants/${externalId}`, {
+      method: "PUT",
+      headers: this.getHeaders(),
+      body: JSON.stringify(payload),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      // Si hay errores de validación (400), lanzar el resultado para mostrar errores por campo
+      throw result;
+    }
+
+    return result;
+  }
 };

@@ -1,34 +1,51 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { ParticipantsTable } from "@/components/Tables/participant-table";
 import { participantService } from "@/services/participant.service";
 import type { Participant } from "@/types/participant";
 import Loader from "@/components/Loader/loader";
+import { EditParticipantModal } from "@/components/Modal/edit-participant-modal";
 
 export default function ParticipantPage() {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await participantService.getAll();
+      setParticipants(data);
+    } catch (err) {
+      setError("Ocurrió un problema con el servidor, espere un momento");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const data = await participantService.getAll();
-        setParticipants(data);
-      } catch (err) {
-        setError("Ocurrió un problema con el servidor, espere un momento");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchData();
-  }, []);
+  }, [fetchData]);
+
+  const handleEdit = (participant: Participant) => {
+    setSelectedParticipant(participant);
+    setIsEditModalOpen(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setSelectedParticipant(null);
+  };
+
+  const handleEditSuccess = () => {
+    fetchData();
+  };
+
   if (loading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
@@ -49,6 +66,7 @@ export default function ParticipantPage() {
       </div>
     );
   }
+
   return (
     <div className="mx-auto w-full max-w-[1080px]">
       <Breadcrumb pageName="Lista Participantes" />
@@ -77,8 +95,19 @@ export default function ParticipantPage() {
         </Link>
       </div>
       <div className="space-y-10">
-        <ParticipantsTable data={participants} />
+        <ParticipantsTable
+          data={participants}
+          onStatusChange={fetchData}
+          onEdit={handleEdit}
+        />
       </div>
+
+      <EditParticipantModal
+        isOpen={isEditModalOpen}
+        onClose={handleCloseEditModal}
+        participant={selectedParticipant}
+        onSuccess={handleEditSuccess}
+      />
     </div>
   );
 }

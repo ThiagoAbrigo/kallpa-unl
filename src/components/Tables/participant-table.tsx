@@ -1,16 +1,48 @@
 "use client";
 
 import { TableBase } from "@/components/Tables/tablebase";
-import { participantColumns } from "@/components/Tables/columns/participant-columns";
+import { getParticipantColumns } from "@/components/Tables/columns/participant-columns";
 import { Participant } from "@/types/participant";
-import { useMemo, useState } from "react";
+import { participantService } from "@/services/participant.service";
+import { useMemo, useState, useCallback } from "react";
 import { FiChevronDown, FiFilter, FiSearch } from "react-icons/fi";
 
-export function ParticipantsTable({ data }: { data: Participant[] }) {
+interface ParticipantsTableProps {
+  data: Participant[];
+  onStatusChange?: () => Promise<void> | void;
+  onEdit?: (participant: Participant) => void;
+}
+
+export function ParticipantsTable({ data, onStatusChange, onEdit }: ParticipantsTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
   const statusOptions = ["TODOS", "ACTIVO", "INACTIVO"];
+
+  const handleToggleStatus = useCallback(async (participant: Participant) => {
+    if (!participant.id) return;
+
+    const newStatus = participant.status === "ACTIVO" ? "INACTIVO" : "ACTIVO";
+
+    try {
+      setLoadingId(participant.id);
+      await participantService.changeStatus(participant.id, newStatus);
+      if (onStatusChange) {
+        await onStatusChange();
+      }
+    } catch (error) {
+      console.error("Error al cambiar estado:", error);
+      alert("Error al cambiar el estado del participante");
+    } finally {
+      setLoadingId(null);
+    }
+  }, [onStatusChange]);
+
+  const columns = useMemo(
+    () => getParticipantColumns({ onToggleStatus: handleToggleStatus, onEdit, loadingId }),
+    [handleToggleStatus, onEdit, loadingId]
+  );
   const filteredData = useMemo(() => {
     const term = searchTerm.toLowerCase().trim();
 
@@ -61,11 +93,10 @@ export function ParticipantsTable({ data }: { data: Participant[] }) {
                     setStatusFilter(option);
                     setIsFilterOpen(false);
                   }}
-                  className={`w-full rounded-md px-3 py-2 text-left text-sm transition-colors ${
-                    statusFilter === option
-                      ? "bg-primary text-white"
-                      : "text-gray-400 hover:bg-white/5 hover:text-dark dark:hover:text-white"
-                  }`}
+                  className={`w-full rounded-md px-3 py-2 text-left text-sm transition-colors ${statusFilter === option
+                    ? "bg-primary text-white"
+                    : "text-gray-400 hover:bg-white/5 hover:text-dark dark:hover:text-white"
+                    }`}
                 >
                   {option}
                 </button>
@@ -85,7 +116,7 @@ export function ParticipantsTable({ data }: { data: Participant[] }) {
         </div>
       ) : (
         <TableBase
-          columns={participantColumns}
+          columns={columns}
           data={filteredData}
           rowKey={(p) => String(p.id)}
         />
