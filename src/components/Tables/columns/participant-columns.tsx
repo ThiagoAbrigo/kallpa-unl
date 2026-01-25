@@ -86,8 +86,10 @@ export const getParticipantColumns = (
           <div className="flex items-center justify-center gap-1 text-gray-400">
             {onEdit && (
               <button
+                type="button"
                 onClick={() => onEdit(p)}
                 title="Editar participante"
+                aria-label="Editar participante"
                 className="rounded-md p-1.5 text-blue-500 transition-all duration-200 hover:bg-blue-500/10 hover:text-blue-600"
               >
                 <FiEye size={20} />

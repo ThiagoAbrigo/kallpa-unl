@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Modal from "@/components/Modal/modal";
 import InputGroup from "@/components/FormElements/InputGroup";
 import { participantService } from "@/services/participant.service";
@@ -7,6 +7,7 @@ import { Participant } from "@/types/participant";
 import { FiSave, FiX, FiEdit3 } from "react-icons/fi";
 import { Alert } from "@/components/ui-elements/alert";
 import ErrorMessage from "@/components/FormElements/errormessage";
+import { Button } from "@/components/ui-elements/button";
 
 interface EditParticipantModalProps {
     isOpen: boolean;
@@ -27,6 +28,9 @@ export function EditParticipantModal({
     const [alertVariant, setAlertVariant] = useState<"success" | "error">("success");
     const [alertTitle, setAlertTitle] = useState("");
     const [alertDescription, setAlertDescription] = useState("");
+
+    const alertTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const successTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const [formData, setFormData] = useState({
         firstName: "",
@@ -50,8 +54,18 @@ export function EditParticipantModal({
                 email: participant.email || "",
             });
             setErrors({});
+            // Clear alerts when opening a new participant
+            setShowAlert(false);
         }
     }, [participant]);
+
+    // Cleanup timeouts on unmount
+    useEffect(() => {
+        return () => {
+            if (alertTimeoutRef.current) clearTimeout(alertTimeoutRef.current);
+            if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current);
+        };
+    }, []);
 
     const triggerAlert = (
         variant: "success" | "error",
@@ -63,7 +77,8 @@ export function EditParticipantModal({
         setAlertDescription(description);
         setShowAlert(true);
 
-        setTimeout(() => {
+        if (alertTimeoutRef.current) clearTimeout(alertTimeoutRef.current);
+        alertTimeoutRef.current = setTimeout(() => {
             setShowAlert(false);
         }, 3000);
     };
@@ -106,7 +121,8 @@ export function EditParticipantModal({
                 "El participante se actualizó correctamente."
             );
 
-            setTimeout(() => {
+            if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current);
+            successTimeoutRef.current = setTimeout(() => {
                 onSuccess();
                 onClose();
             }, 1000);
@@ -128,6 +144,8 @@ export function EditParticipantModal({
     const handleClose = () => {
         setErrors({});
         setShowAlert(false);
+        if (alertTimeoutRef.current) clearTimeout(alertTimeoutRef.current);
+        if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current);
         onClose();
     };
 
@@ -149,7 +167,9 @@ export function EditParticipantModal({
                         </div>
                     </div>
                     <button
+                        type="button"
                         onClick={handleClose}
+                        aria-label="Cerrar modal"
                         className="rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
                     >
                         <FiX size={20} />
@@ -255,27 +275,21 @@ export function EditParticipantModal({
                     </div>
 
                     <div className="flex gap-3">
-                        <button
+                        <Button
                             type="button"
+                            label="Cancelar"
                             onClick={handleClose}
-                            className="flex-1 rounded-lg border border-gray-300 px-4 py-3 font-medium text-gray-700 transition hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
-                        >
-                            Cancelar
-                        </button>
-                        <button
+                            variant="outlineDark"
+                            className="w-full sm:w-auto flex-1"
+                        />
+                        <Button
                             type="submit"
                             disabled={loading}
-                            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 font-bold text-white transition hover:bg-opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                            {loading ? (
-                                <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                            ) : (
-                                <>
-                                    <FiSave size={18} />
-                                    Guardar Cambios
-                                </>
-                            )}
-                        </button>
+                            label={loading ? "Guardando..." : "Guardar Cambios"}
+                            variant="primary"
+                            icon={!loading ? <FiSave size={18} /> : undefined}
+                            className="w-full sm:w-auto flex-1"
+                        />
                     </div>
                 </form>
             </div>

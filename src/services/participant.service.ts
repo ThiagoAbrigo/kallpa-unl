@@ -72,8 +72,7 @@ export const participantService = {
         (p: any) =>
           p.type !== "ADMINISTRATIVO" &&
           p.type !== "DOCENTEADMIN" &&
-          p.type !== "PASANTE" &&
-          p.status === "ACTIVO"
+          p.type !== "PASANTE"
       );
   },
 
@@ -257,14 +256,14 @@ export const participantService = {
   async updateParticipant(externalId: string, data: Partial<Participant>) {
     const payload: Record<string, any> = {};
 
-    // Solo enviar campos que tienen valor
-    if (data.firstName) payload.firstName = data.firstName;
-    if (data.lastName) payload.lastName = data.lastName;
+    // Solo enviar campos que tienen valor definido (permite string vacíos si se desea limpiar)
+    if (data.firstName !== undefined) payload.firstName = data.firstName;
+    if (data.lastName !== undefined) payload.lastName = data.lastName;
     if (data.phone !== undefined) payload.phone = data.phone;
-    if (data.email) payload.email = data.email;
+    if (data.email !== undefined) payload.email = data.email;
     if (data.address !== undefined) payload.address = data.address;
     if (data.age !== undefined) payload.age = data.age;
-    if (data.dni) payload.dni = data.dni;
+    if (data.dni !== undefined) payload.dni = data.dni;
 
     const response = await fetch(`${API_URL}/participants/${externalId}`, {
       method: "PUT",
