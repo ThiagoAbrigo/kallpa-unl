@@ -41,7 +41,7 @@ export default function Historial() {
   const [alertTitle, setAlertTitle] = useState('');
   const [alertDescription, setAlertDescription] = useState('');
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
-  const [attendanceToDelete, setAttendanceToDelete] = useState<{scheduleId: string, date: string, name: string} | null>(null);
+  const [attendanceToDelete, setAttendanceToDelete] = useState<{ scheduleId: string, date: string, name: string } | null>(null);
 
   const [dateFrom, setDateFrom] = useState(() => {
     const d = new Date();
@@ -484,7 +484,7 @@ export default function Historial() {
               </div>
             </div>
             <p className="text-gray-700 dark:text-gray-300 mb-6">
-              ¿Estás seguro de eliminar la asistencia de <strong>"{attendanceToDelete.name}"</strong> del {attendanceToDelete.date}?
+              ¿Estás seguro de eliminar la asistencia de <strong>&quot;{attendanceToDelete.name}&quot;</strong> del {attendanceToDelete.date}?
             </p>
             <div className="flex gap-3">
               <button

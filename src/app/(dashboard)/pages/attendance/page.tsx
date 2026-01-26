@@ -46,7 +46,7 @@ export default function DashboardAsistencia() {
   const [alertTitle, setAlertTitle] = useState('');
   const [alertDescription, setAlertDescription] = useState('');
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
-  const [sessionToDelete, setSessionToDelete] = useState<{id: string | number, name: string} | null>(null);
+  const [sessionToDelete, setSessionToDelete] = useState<{ id: string | number, name: string } | null>(null);
   const [editEndDateError, setEditEndDateError] = useState<string>('');
   const PROGRAM_COLORS = [
     { value: '#3B82F6', label: 'Azul' },
@@ -372,7 +372,7 @@ export default function DashboardAsistencia() {
     if (dayValue && endDate && !formData.get('specific_date')) {
       const endDateObj = new Date(endDate + 'T12:00:00');
       const dayOfWeek = endDateObj.getDay(); // 0=domingo, 1=lunes, ..., 6=sábado
-      
+
       const dayMapping: Record<string, number> = {
         'monday': 1, 'tuesday': 2, 'wednesday': 3, 'thursday': 4, 'friday': 5, 'saturday': 6, 'sunday': 0,
         'lunes': 1, 'martes': 2, 'miercoles': 3, 'miércoles': 3, 'jueves': 4, 'viernes': 5, 'sabado': 6, 'sábado': 6, 'domingo': 0
@@ -385,7 +385,7 @@ export default function DashboardAsistencia() {
         return;
       }
     }
-    
+
     setEditEndDateError('');
 
     const data = {
@@ -514,7 +514,7 @@ export default function DashboardAsistencia() {
 
                 // Si hay registros, la sesión está completada
                 const isCompleted = historyRecords.length > 0;
-                
+
                 // Contar presentes y total
                 const presentCount = historyRecords.filter((h: any) => h.status === 'present').length;
                 const totalCount = historyRecords.length;
@@ -532,16 +532,14 @@ export default function DashboardAsistencia() {
                 return (
                   <div
                     key={scheduleId}
-                    className={`relative rounded-lg transition-all duration-300 overflow-hidden ${
-                      isCompleted
+                    className={`relative rounded-lg transition-all duration-300 overflow-hidden ${isCompleted
                         ? 'bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border border-emerald-300 dark:border-emerald-700'
                         : 'bg-white dark:bg-gray-dark border border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-600'
-                    }`}
+                      }`}
                   >
                     {/* Barra superior de color */}
-                    <div className={`h-1 w-full ${
-                      isCompleted ? 'bg-emerald-500' : 'bg-blue-500'
-                    }`}></div>
+                    <div className={`h-1 w-full ${isCompleted ? 'bg-emerald-500' : 'bg-blue-500'
+                      }`}></div>
 
                     <div className="p-4">
                       {/* Header con título y badge */}
@@ -555,11 +553,10 @@ export default function DashboardAsistencia() {
                             </div>
                           )}
                         </div>
-                        <span className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold ${
-                          isCompleted
+                        <span className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold ${isCompleted
                             ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                             : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                        }`}>
+                          }`}>
                           <span className="text-sm">
                             {isCompleted ? '✓' : '⌛'}
                           </span>
@@ -591,11 +588,10 @@ export default function DashboardAsistencia() {
                       {scheduleId ? (
                         <Link
                           href={`/pages/attendance/registro?session=${scheduleId}&date=${currentDate.toISOString().split('T')[0]}`}
-                          className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                            isCompleted
+                          className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold transition-colors ${isCompleted
                               ? 'bg-emerald-600 text-white hover:bg-emerald-700'
                               : 'bg-blue-600 text-white hover:bg-blue-700'
-                          }`}
+                            }`}
                         >
                           <span className="text-base">{isCompleted ? '✏️' : '✅'}</span>
                           {isCompleted ? 'Editar Asistencia' : 'Registrar Asistencia'}
@@ -886,7 +882,7 @@ export default function DashboardAsistencia() {
               </div>
             </div>
             <p className="text-gray-700 dark:text-gray-300 mb-6">
-              ¿Estás seguro de eliminar la sesión <strong>"{sessionToDelete.name}"</strong>?
+              ¿Estás seguro de eliminar la sesión <strong>&quot;{sessionToDelete.name}&quot;</strong>?
             </p>
             <div className="flex gap-3">
               <button

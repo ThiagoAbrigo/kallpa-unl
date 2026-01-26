@@ -24,7 +24,7 @@ export default function Sesiones() {
   const [alertTitle, setAlertTitle] = useState('');
   const [alertDescription, setAlertDescription] = useState('');
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
-  const [sessionToDelete, setSessionToDelete] = useState<{id: string | number, name: string} | null>(null);
+  const [sessionToDelete, setSessionToDelete] = useState<{ id: string | number, name: string } | null>(null);
 
   const daysOrder = ['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO', 'DOMINGO'];
 
@@ -356,7 +356,7 @@ export default function Sesiones() {
               </div>
             </div>
             <p className="text-gray-700 dark:text-gray-300 mb-6">
-              ¿Estás seguro de eliminar la sesión <strong>"{sessionToDelete.name}"</strong>?
+              ¿Estás seguro de eliminar la sesión <strong>&quot;{sessionToDelete.name}&quot;</strong>?
             </p>
             <div className="flex gap-3">
               <button

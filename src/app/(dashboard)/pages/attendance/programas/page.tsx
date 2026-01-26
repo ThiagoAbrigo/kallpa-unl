@@ -36,7 +36,7 @@ export default function ProgramasPage() {
   const [alertTitle, setAlertTitle] = useState('');
   const [alertDescription, setAlertDescription] = useState('');
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
-  const [programToDelete, setProgramToDelete] = useState<{id: string, name: string} | null>(null);
+  const [programToDelete, setProgramToDelete] = useState<{ id: string, name: string } | null>(null);
 
   // Estado para ver participantes de un programa
   const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
@@ -398,8 +398,8 @@ export default function ProgramasPage() {
                       type="button"
                       onClick={() => setFormData({ ...formData, color: color.value })}
                       className={`w-10 h-10 rounded-lg transition-all ${formData.color === color.value
-                          ? 'ring-2 ring-offset-2 ring-gray-400 dark:ring-offset-gray-800'
-                          : 'hover:scale-110'
+                        ? 'ring-2 ring-offset-2 ring-gray-400 dark:ring-offset-gray-800'
+                        : 'hover:scale-110'
                         }`}
                       style={{ backgroundColor: color.value }}
                     />
@@ -483,8 +483,8 @@ export default function ProgramasPage() {
                         )}
                       </div>
                       <span className={`px-2 py-1 rounded text-xs font-medium ${participant.status === 'active' || participant.status === 'ACTIVO'
-                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                          : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-400'
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                        : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-400'
                         }`}>
                         {participant.status === 'active' || participant.status === 'ACTIVO' ? 'Activo' : participant.status}
                       </span>
@@ -511,7 +511,7 @@ export default function ProgramasPage() {
               </div>
             </div>
             <p className="text-gray-700 dark:text-gray-300 mb-6">
-              ¿Estás seguro de eliminar el programa <strong>"{programToDelete.name}"</strong>?
+              ¿Estás seguro de eliminar el programa <strong>&quot;{programToDelete.name}&quot;</strong>?
             </p>
             <div className="flex gap-3">
               <button
