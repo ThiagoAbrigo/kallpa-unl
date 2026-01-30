@@ -1,4 +1,4 @@
-import { Participant } from "@/types/participant";
+import { Participant, UpdateParticipantData } from "@/types/participant";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
@@ -103,6 +103,46 @@ export const participantService = {
         address: result.data.address || "",
         type: result.data.type || "PARTICIPANTE",
         status: result.data.status || "ACTIVO",
+      };
+    }
+
+    return null;
+  },
+
+  async getById(externalId: string): Promise<Participant | null> {
+    // No hay endpoint individual, obtenemos todos y filtramos
+    const response = await fetch(`${API_URL}/users`, {
+      method: "GET",
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const result = await response.json();
+    const list = Array.isArray(result) ? result : result.data || [];
+
+    const found = list.find(
+      (p: any) =>
+        p.external_id === externalId ||
+        p.java_external === externalId ||
+        p.id?.toString() === externalId
+    );
+
+    if (found) {
+      return {
+        id: found.external_id || found.java_external || found.id?.toString(),
+        firstName: found.firstName || found.first_name || "",
+        lastName: found.lastName || found.last_name || "",
+        dni: found.dni || "",
+        email: found.email || "",
+        phone: found.phone || found.phono || "",
+        address: found.address || found.direction || "",
+        age: found.age || 0,
+        type: found.type || found.type_stament || "PARTICIPANTE",
+        role: found.role || "USER",
+        status: found.status || "ACTIVO",
       };
     }
 
@@ -250,5 +290,21 @@ export const participantService = {
     }
 
     return result.data;
+  },
+
+  async updateParticipant(externalId: string, data: UpdateParticipantData) {
+    const response = await fetch(`${API_URL}/participants/${externalId}`, {
+      method: "PUT",
+      headers: this.getHeaders(),
+      body: JSON.stringify(data),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok && response.status !== 400) {
+      throw new Error(result.msg || "Error al actualizar participante");
+    }
+
+    return result;
   }
 };
