@@ -1,8 +1,0 @@
-En la rama 57-users-corrections
-Tu rama está actualizada con 'origin/57-users-corrections'.
-
-Archivos sin seguimiento:
-  (usa "git add <archivo>..." para incluirlo a lo que será confirmado)
-	git_status.txt
-
-no hay nada agregado al commit pero hay archivos sin seguimiento presentes (usa "git add" para hacerles seguimiento)

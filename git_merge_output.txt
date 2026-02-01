@@ -1,8 +1,0 @@
-Auto-fusionando src/app/(dashboard)/pages/participant/edit/[id]/page.tsx
-CONFLICTO (contenido): Conflicto de fusión en src/app/(dashboard)/pages/participant/edit/[id]/page.tsx
-CONFLICTO (modificar / eliminar): src/components/Forms/edit-participant-form.tsx eliminado en HEAD y modificado en origin/develop. Versión origin/develop de src/components/Forms/edit-participant-form.tsx restante en el árbol.
-Auto-fusionando src/components/Forms/register-participant-form.tsx
-CONFLICTO (contenido): Conflicto de fusión en src/components/Forms/register-participant-form.tsx
-Auto-fusionando src/services/participant.service.ts
-CONFLICTO (contenido): Conflicto de fusión en src/services/participant.service.ts
-Fusión automática falló; arregle los conflictos y luego realice un commit con el resultado.
