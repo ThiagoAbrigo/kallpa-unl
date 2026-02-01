@@ -380,8 +380,8 @@ export default function Historial() {
       {/* Stats Cards */}
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-        <StatCard icon="event" iconBg="bg-blue-100 text-blue-800" label="Total Sesiones" value={totalSessions} />
-        <StatCard icon="percent" iconBg="bg-purple-100 text-purple-600" label="Asistencia Promedio" value={`${avgAttendance}%`} />
+        <StatCard icon="event" iconBg="bg-blue-500/10 text-blue-500" label="Total Sesiones" value={totalSessions} />
+        <StatCard icon="percent" iconBg="bg-emerald-500/10 text-emerald-500" label="Asistencia Promedio" value={`${avgAttendance}%`} />
       </div>
 
       {/* Filters */}

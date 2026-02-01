@@ -1,15 +1,26 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import InputGroup from "@/components/FormElements/InputGroup";
 import { participantService } from "@/services/participant.service";
 import { Select } from "../FormElements/select";
-import { FiSave, FiUserPlus, FiUsers } from "react-icons/fi";
+import { FiCalendar, FiCreditCard, FiEdit, FiMail, FiMapPin, FiPhone, FiSave, FiUser, FiUserPlus, FiUsers } from "react-icons/fi";
 import { Alert } from "@/components/ui-elements/alert";
 import ErrorMessage from "../FormElements/errormessage";
 import { ShowcaseSection } from "../Layouts/showcase-section";
+import { Button } from "@/components/ui-elements/button";
+import { useRouter } from "next/navigation";
+import Loader from "@/components/Loader/loader";
 
-export const RegisterParticipantForm = () => {
-  const [loading, setLoading] = useState(false);
+interface RegisterParticipantFormProps {
+  participantId?: string;
+}
+
+export const RegisterParticipantForm = ({ participantId }: RegisterParticipantFormProps) => {
+  const router = useRouter();
+  const isEditMode = Boolean(participantId);
+
+  const [loading, setLoading] = useState(isEditMode);
+  const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showAlert, setShowAlert] = useState(false);
   const [alertVariant, setAlertVariant] = useState<
@@ -17,6 +28,8 @@ export const RegisterParticipantForm = () => {
   >("success");
   const [alertTitle, setAlertTitle] = useState("");
   const [alertDescription, setAlertDescription] = useState("");
+  const [hasOriginalResponsible, setHasOriginalResponsible] = useState(false);
+
   const triggerAlert = (
     variant: "success" | "error" | "warning",
     title: string,
@@ -49,7 +62,47 @@ export const RegisterParticipantForm = () => {
     responsiblePhone: "",
   });
 
+  // Cargar datos del participante en modo edición
+  useEffect(() => {
+    if (!participantId) return;
+
+    const fetchParticipant = async () => {
+      try {
+        const participant = await participantService.getById(participantId);
+
+        if (participant) {
+          // Verificar si tiene responsable original
+          if (participant.responsible) {
+            setHasOriginalResponsible(true);
+          }
+
+          setFormData({
+            firstName: participant.firstName || "",
+            lastName: participant.lastName || "",
+            dni: participant.dni || "",
+            type: participant.type || "",
+            phone: participant.phone || "",
+            address: participant.address || "",
+            age: participant.age?.toString() || "",
+            email: participant.email || "",
+            program: participant.program || "",
+            responsibleName: participant.responsible?.name || "",
+            responsibleDni: participant.responsible?.dni || "",
+            responsiblePhone: participant.responsible?.phone || "",
+          });
+        }
+      } catch (error) {
+        triggerAlert("error", "Error", "No se pudo cargar el participante");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchParticipant();
+  }, [participantId]);
+
   const isMinor = Number(formData.age) > 0 && Number(formData.age) < 18;
+
   const clearFieldError = (field: string) => {
     setErrors((prev) => {
       const copy = { ...prev };
@@ -62,15 +115,14 @@ export const RegisterParticipantForm = () => {
     { value: "", label: "Seleccione un tipo" },
     { value: "ESTUDIANTE", label: "Estudiante" },
     { value: "DOCENTE", label: "Docente" },
-    { value: "TRABAJADOR", label: "Trabajador" },
     { value: "EXTERNO", label: "Externo" },
-    { value: "PARTICIPANTE", label: "Participante General" },
   ];
   const TypeOptions = [
     { value: "", label: "Seleccione un programa" },
     { value: "INICIACION", label: "Iniciación" },
     { value: "FUNCIONAL", label: "Funcional" },
   ];
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
@@ -81,8 +133,25 @@ export const RegisterParticipantForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setSubmitting(true);
     setErrors({});
+
+    // Validación de campos requeridos antes de enviar
+    const validationErrors: Record<string, string> = {};
+
+    if (!formData.type || formData.type === "") {
+      validationErrors.type = "Debe seleccionar un tipo de participante";
+    }
+
+    if (!formData.program || formData.program === "") {
+      validationErrors.program = "Debe seleccionar un programa";
+    }
+
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      setSubmitting(false);
+      return;
+    }
 
     const isMinor = Number(formData.age) > 0 && Number(formData.age) < 18;
     if (isMinor && formData.program === "FUNCIONAL") {
@@ -96,35 +165,76 @@ export const RegisterParticipantForm = () => {
         "Restricción de edad",
         "Los menores de 18 años no pueden inscribirse en el programa Funcional.",
       );
-      setLoading(false);
+      setSubmitting(false);
       return;
     }
 
     try {
-      const response = await participantService.createParticipant({
-        ...formData,
-        age: formData.age ? parseInt(formData.age) : 0,
-      });
-      triggerAlert(
-        "success",
-        "Participante registrado",
-        "El participante se registró correctamente.",
-      );
+      if (isEditMode && participantId) {
+        // Modo edición: actualizar participante
+        const updateData: any = {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          age: formData.age ? parseInt(formData.age) : undefined,
+          dni: formData.dni,
+          phone: formData.phone || undefined,
+          email: formData.email || undefined,
+          address: formData.address || undefined,
+          type: formData.type || undefined,
+          program: formData.program || undefined,
+        };
 
-      setFormData({
-        firstName: "",
-        lastName: "",
-        dni: "",
-        type: "ESTUDIANTE",
-        phone: "",
-        address: "",
-        age: "",
-        email: "",
-        responsibleName: "",
-        responsibleDni: "",
-        responsiblePhone: "",
-        program: "",
-      });
+        // Solo incluir responsable si el participante YA tenía uno originalmente
+        // (el API no permite agregar responsable en actualización, solo modificar existente)
+        if (hasOriginalResponsible && (formData.responsibleName || formData.responsibleDni || formData.responsiblePhone)) {
+          updateData.responsible = {
+            name: formData.responsibleName,
+            dni: formData.responsibleDni,
+            phone: formData.responsiblePhone,
+          };
+        }
+
+        const response = await participantService.updateParticipant(participantId, updateData);
+
+        if (response.status === "success" || response.code === 200) {
+          triggerAlert(
+            "success",
+            "Participante actualizado",
+            "El participante se actualizó correctamente.",
+          );
+          setTimeout(() => {
+            router.push("/pages/participant");
+          }, 1500);
+        } else if (response.data && typeof response.data === "object") {
+          setErrors(response.data);
+        }
+      } else {
+        // Modo registro: crear participante
+        const response = await participantService.createParticipant({
+          ...formData,
+          age: formData.age ? parseInt(formData.age) : 0,
+        });
+        triggerAlert(
+          "success",
+          "Participante registrado",
+          "El participante se registró correctamente.",
+        );
+
+        setFormData({
+          firstName: "",
+          lastName: "",
+          dni: "",
+          type: "",
+          phone: "",
+          address: "",
+          age: "",
+          email: "",
+          responsibleName: "",
+          responsibleDni: "",
+          responsiblePhone: "",
+          program: "",
+        });
+      }
     } catch (err: any) {
       if (err?.data && typeof err.data === "object") {
         setErrors(err.data);
@@ -132,25 +242,33 @@ export const RegisterParticipantForm = () => {
           (key) => key !== "general" && err.data[key],
         );
         if (!hasFieldErrors && err.msg) {
-          triggerAlert("error", "Error al registrar", err.msg);
+          triggerAlert("error", "Error", err.msg);
         }
       } else {
         triggerAlert(
           "error",
-          "Error al registrar",
-          "No se pudo registrar el participante.",
+          isEditMode ? "Error al actualizar" : "Error al registrar",
+          isEditMode ? "No se pudo actualizar el participante." : "No se pudo registrar el participante.",
         );
       }
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <Loader size={60} />
+      </div>
+    );
+  }
+
   return (
     <ShowcaseSection
-      icon={<FiUserPlus size={24} />}
-      title="Registro de Participante"
-      description="Ingresa los datos para un nuevo perfil"
+      icon={isEditMode ? <FiEdit size={24} /> : <FiUserPlus size={24} />}
+      title={isEditMode ? "Editar Participante" : "Registro de Participante"}
+      description={isEditMode ? "Modifica los datos del participante" : "Ingresa los datos para un nuevo perfil"}
     >
       {showAlert && (
         <div className="mb-6">
@@ -171,6 +289,8 @@ export const RegisterParticipantForm = () => {
               placeholder="Ej. Juan"
               value={formData.firstName}
               handleChange={handleChange}
+              iconPosition="left"
+              icon={<FiUser className="text-gray-400" size={18} />}
             />
             <ErrorMessage message={errors.firstName} />
           </div>
@@ -183,6 +303,8 @@ export const RegisterParticipantForm = () => {
               placeholder="Ej. Pérez"
               value={formData.lastName}
               handleChange={handleChange}
+              iconPosition="left"
+              icon={<FiUser className="text-gray-400" size={18} />}
             />
             <ErrorMessage message={errors.lastName} />
           </div>
@@ -197,6 +319,8 @@ export const RegisterParticipantForm = () => {
               placeholder="110XXXXXXX"
               value={formData.dni}
               handleChange={handleChange}
+              iconPosition="left"
+              icon={<FiCreditCard className="text-gray-400" size={18} />}
             />
             <ErrorMessage message={errors.dni} />
           </div>
@@ -209,6 +333,8 @@ export const RegisterParticipantForm = () => {
               placeholder="25"
               value={formData.age}
               handleChange={handleChange}
+              iconPosition="left"
+              icon={<FiCalendar className="text-gray-400" size={18} />}
             />
             <ErrorMessage message={errors.age} />
           </div>
@@ -236,18 +362,22 @@ export const RegisterParticipantForm = () => {
               placeholder="john@example.com"
               value={formData.email}
               handleChange={handleChange}
+              iconPosition="left"
+              icon={<FiMail className="text-gray-400" size={18} />}
             />
             <ErrorMessage message={errors.email} />
           </div>
 
           <div className="w-full xl:w-1/2">
             <InputGroup
-              label="Phone Number"
+              label="Teléfono"
               name="phone"
               type="number"
-              placeholder="+593 999 000 000"
+              placeholder="099XXXXXXX"
               value={formData.phone}
               handleChange={handleChange}
+              iconPosition="left"
+              icon={<FiPhone className="text-gray-400" size={18} />}
             />
             <ErrorMessage message={errors.phone} />
           </div>
@@ -270,10 +400,12 @@ export const RegisterParticipantForm = () => {
             label="Dirección"
             name="address"
             type="text"
-            placeholder="Street address, City, State"
+            placeholder="Ej. Av. Universitaria y Calle Principal"
             className="w-full"
             value={formData.address}
             handleChange={handleChange}
+            iconPosition="left"
+            icon={<FiMapPin className="text-gray-400" size={18} />}
           />
         </div>
 
@@ -305,7 +437,7 @@ export const RegisterParticipantForm = () => {
                 placeholder="Ej. Carlos Pérez"
                 value={formData.responsibleName}
                 handleChange={handleChange}
-                disabled={!isMinor}
+                disabled={isEditMode ? !hasOriginalResponsible : !isMinor}
               />
               <ErrorMessage message={errors.responsibleName} />
             </div>
@@ -318,7 +450,7 @@ export const RegisterParticipantForm = () => {
                 placeholder="110XXXXXXX"
                 value={formData.responsibleDni}
                 handleChange={handleChange}
-                disabled={!isMinor}
+                disabled={isEditMode ? !hasOriginalResponsible : !isMinor}
               />
               <ErrorMessage message={errors.responsibleDni} />
             </div>
@@ -332,26 +464,20 @@ export const RegisterParticipantForm = () => {
               placeholder="+593 999 000 000"
               value={formData.responsiblePhone}
               handleChange={handleChange}
-              disabled={!isMinor}
+              disabled={isEditMode ? !hasOriginalResponsible : !isMinor}
             />
             <ErrorMessage message={errors.responsiblePhone} />
           </div>
         </div>
 
-        <button
+        <Button
           type="submit"
-          disabled={loading}
-          className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-primary p-[13px] font-bold text-white hover:bg-opacity-90"
-        >
-          {loading ? (
-            "Guardando..."
-          ) : (
-            <>
-              <FiSave className="h-5 w-5" />
-              Registrar Participante
-            </>
-          )}
-        </button>
+          disabled={submitting}
+          label={submitting ? "Guardando..." : (isEditMode ? "Guardar Cambios" : "Registrar Participante")}
+          icon={!submitting ? <FiSave size={20} /> : undefined}
+          variant="primary"
+          className="mt-6 w-full"
+        />
       </form>
     </ShowcaseSection>
   );

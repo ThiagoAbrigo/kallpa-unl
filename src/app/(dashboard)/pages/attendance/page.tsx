@@ -19,6 +19,7 @@ import { Button } from '@/components/ui-elements/button';
 import { Select } from '@/components/FormElements/select';
 import InputGroup from '@/components/FormElements/InputGroup';
 import { parseDate } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 
 /**
  * Componente de tarjeta de estadísticas
@@ -78,6 +79,7 @@ export default function DashboardAsistencia() {
   const [editEndDateError, setEditEndDateError] = useState<string>('');
   
   // Opciones de colores para programas
+  const router = useRouter();
   const PROGRAM_COLORS = [
     { value: '#3B82F6', label: 'Azul' },
     { value: '#10B981', label: 'Verde' },
@@ -510,12 +512,22 @@ export default function DashboardAsistencia() {
     <div>
       {/* Page Header */}
       <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
-          Asistencias
-        </h1>
-        <p className="text-gray-500 dark:text-gray-400">
-          {formatDate(currentDate)}
-        </p>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+              Asistencias
+            </h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-1">
+              {formatDate(currentDate)}
+            </p>
+          </div>
+          <Button
+            label="Programar Sesión"
+            shape="rounded"
+            onClick={() => router.push("/pages/attendance/programar")}
+            icon={<span className="material-symbols-outlined text-sm">add</span>}
+          />
+        </div>
       </div>
 
       {/* Alert */}
@@ -530,23 +542,23 @@ export default function DashboardAsistencia() {
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
         <StatCard
-          icon="event"
-          iconBg="bg-blue-100 text-blue-800"
-          label="Sesiones Hoy"
+          icon="calendar_today"
+          iconBg="bg-blue-500/10 text-blue-500"
+          label="SESIONES HOY"
           value={todaySchedules.length}
         />
         <StatCard
           icon="group"
-          iconBg="bg-green-100 text-green-600"
+          iconBg="bg-emerald-500/10 text-emerald-500"
           label="Participantes Activos"
           value={activeParticipants}
         />
 
         <StatCard
-          icon="calendar_month"
-          iconBg="bg-purple-100 text-purple-600"
+          icon="monitoring"
+          iconBg="bg-purple-500/10 text-purple-500"
           label="Sesiones Semana"
           value={upcomingSessions.length + todaySchedules.length}
         />

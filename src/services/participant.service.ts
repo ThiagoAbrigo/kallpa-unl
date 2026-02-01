@@ -1,4 +1,4 @@
-import { Participant } from "@/types/participant";
+import { Participant, UpdateParticipantData } from "@/types/participant";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
@@ -109,6 +109,98 @@ export const participantService = {
     return null;
   },
 
+  /**
+   * Obtiene un participante por su ID externo.
+   * Intenta obtener datos completos (incluyendo responsable) desde /participants/:id.
+   * Si falla, hace fallback a /users para obtener datos básicos.
+   */
+  async getById(externalId: string): Promise<Participant | null> {
+    // Usar el endpoint específico de participantes que incluye datos del responsable
+    try {
+      const response = await fetch(`${API_URL}/participants/${externalId}`, {
+        method: "GET",
+        headers: this.getHeaders(),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        const data = result.data || result;
+
+        if (data) {
+          // La API puede devolver estructura plana o anidada {participant: {...}, responsible: {...}}
+          const participantData = data.participant || data;
+          const responsibleData = data.responsible;
+
+          return {
+            id: participantData.external_id || externalId,
+            firstName: participantData.firstName || participantData.first_name || "",
+            lastName: participantData.lastName || participantData.last_name || "",
+            dni: participantData.dni || "",
+            email: participantData.email || "",
+            phone: participantData.phone || participantData.phono || "",
+            address: participantData.address || participantData.direction || "",
+            age: participantData.age || 0,
+            type: participantData.type || participantData.type_stament || "PARTICIPANTE",
+            program: participantData.program || undefined,
+            role: participantData.role || "USER",
+            status: participantData.status || "ACTIVO",
+            responsible: responsibleData ? {
+              name: responsibleData.name || "",
+              dni: responsibleData.dni || "",
+              phone: responsibleData.phone || "",
+            } : undefined,
+          };
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching participant by ID:", error);
+    }
+
+    // Fallback: obtener todos y filtrar (no incluye datos del responsable)
+    const response = await fetch(`${API_URL}/users`, {
+      method: "GET",
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const result = await response.json();
+    const list = Array.isArray(result) ? result : result.data || [];
+
+    const found = list.find(
+      (p: any) =>
+        p.external_id === externalId ||
+        p.java_external === externalId ||
+        p.id?.toString() === externalId
+    );
+
+    if (found) {
+      return {
+        id: found.external_id || found.java_external || found.id?.toString(),
+        firstName: found.firstName || found.first_name || "",
+        lastName: found.lastName || found.last_name || "",
+        dni: found.dni || "",
+        email: found.email || "",
+        phone: found.phone || found.phono || "",
+        address: found.address || found.direction || "",
+        age: found.age || 0,
+        type: found.type || found.type_stament || "PARTICIPANTE",
+        program: found.program || undefined,
+        role: found.role || "USER",
+        status: found.status || "ACTIVO",
+        responsible: found.responsible ? {
+          name: found.responsible.name || "",
+          dni: found.responsible.dni || "",
+          phone: found.responsible.phone || "",
+        } : undefined,
+      };
+    }
+
+    return null;
+  },
+
   async changeStatus(externalId: string, newStatus: string) {
     const response = await fetch(`${API_URL}/users/${externalId}/status`, {
       method: "PUT",
@@ -189,12 +281,11 @@ export const participantService = {
 
   // Método para crear participante y manejar errores del backend
   async createParticipant(data: any) {
-    const isMinor = data.age < 18 || data.type === "INICIACION";
+    const age = Number(data.age);
+    const isMinor = age > 0 && age < 18;
 
     const payload = isMinor
       ? {
-        type: "INICIACION",
-        program: data.program,
         participant: {
           firstName: data.firstName,
           lastName: data.lastName,
@@ -203,6 +294,8 @@ export const participantService = {
           phone: data.phone || "",
           email: data.email || "",
           address: data.address || "",
+          type: data.type,
+          program: data.program,
         },
         responsible: {
           name: data.responsibleName,
@@ -250,5 +343,26 @@ export const participantService = {
     }
 
     return result.data;
+  },
+
+  /**
+   * Actualiza un participante existente.
+   * Si tiene datos de responsable (solo permitido si ya tenía responsable previamente),
+   * envía estructura anidada {participant: {...}, responsible: {...}}.
+   */
+  async updateParticipant(externalId: string, data: UpdateParticipantData) {
+    const response = await fetch(`${API_URL}/participants/${externalId}`, {
+      method: "PUT",
+      headers: this.getHeaders(),
+      body: JSON.stringify(data),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok && response.status !== 400) {
+      throw new Error(result.msg || "Error al actualizar participante");
+    }
+
+    return result;
   }
 };
