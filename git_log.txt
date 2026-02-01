@@ -1,0 +1,11 @@
+commit 5183f7b026a44de7eef9f6264996185a0e2983fa
+Author: joseph <joseph.balcazar@unl.edu.ec>
+Date:   Sat Jan 31 18:45:22 2026 -0500
+
+    refactor: update participant form to handle edit mode correctly
+
+commit 899a2cbe795f82496d918c2452aa047d9f8fdbc2
+Author: joseph <joseph.balcazar@unl.edu.ec>
+Date:   Fri Jan 30 10:31:05 2026 -0500
+
+    feat: agregar iconos y traducir textos a español
