@@ -219,7 +219,7 @@ export const RegisterParticipantForm = ({ participantId }: RegisterParticipantFo
         });
       }
     } catch (err: any) {
-      if (err?.type === "SERVER_DOWN") {
+      if (err?.name === "TypeError" || err?.message?.includes("fetch") || !err?.response) {
         window.dispatchEvent(
           new CustomEvent("SERVER_DOWN", {
             detail: {
@@ -230,6 +230,7 @@ export const RegisterParticipantForm = ({ participantId }: RegisterParticipantFo
         );
         return;
       }
+      
       if (err?.code === 400 && err?.data) {
         setErrors(err.data);
         return;

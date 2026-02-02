@@ -98,7 +98,8 @@ export const UserForm = () => {
         role: "",
       });
     } catch (err: any) {
-      if (err?.type === "SERVER_DOWN") {
+      // Si es error de red (fetch failed), disparar SERVER_DOWN
+      if (err?.name === "TypeError" || err?.message?.includes("fetch") || !err?.response) {
         window.dispatchEvent(
           new CustomEvent("SERVER_DOWN", {
             detail: {
@@ -109,6 +110,7 @@ export const UserForm = () => {
         );
         return;
       }
+      
       if (err?.data && typeof err.data === "object") {
         setErrors(err.data);
         return;
