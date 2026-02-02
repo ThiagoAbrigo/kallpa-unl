@@ -1,5 +1,5 @@
 "use client";
-import { EditParticipantForm } from "@/components/Forms/edit-participant-form";
+import { RegisterParticipantForm } from "@/components/Forms/register-participant-form";
 import { use } from "react";
 
 interface EditParticipantPageProps {
@@ -11,7 +11,7 @@ export default function EditParticipantPage({ params }: EditParticipantPageProps
 
   return (
     <div className="mx-auto w-full max-w-[1080px]">
-      <EditParticipantForm participantId={id} />
+      <RegisterParticipantForm participantId={id} />
     </div>
   );
 }

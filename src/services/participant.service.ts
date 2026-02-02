@@ -7,45 +7,38 @@ export const participantService = {
     const token = localStorage.getItem("token");
     return {
       "Content-Type": "application/json",
-      Authorization: token || "",
+      Authorization: token ? `Bearer ${token}` : "",
     };
   },
 
   async create(data: any) {
-    try {
-      const payload = {
-        firstName: data.firstName,
-        lastName: data.lastName,
-        dni: data.dni,
-        email: data.email || `${data.dni}@participante.local`,
-        phone: data.phone || "",
-        address: data.address || "",
-        age: data.age || 0,
-        type: data.type,
-        password: data.password || undefined,
-      };
+    const payload = {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      dni: data.dni,
+      email: data.email || `${data.dni}@participante.local`,
+      phone: data.phone || "",
+      address: data.address || "",
+      age: data.age || 0,
+      type: data.type,
+      password: data.password || undefined,
+    };
 
-      const response = await fetch(`${API_URL}/users`, {
-        method: "POST",
-        headers: this.getHeaders(),
-        body: JSON.stringify(payload),
-      });
+    const response = await fetch(`${API_URL}/users`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body: JSON.stringify(payload),
+    });
 
-      const result = await response.json();
+    const result = await response.json();
 
-      if (!response.ok) {
-        throw new Error(
-          result.msg || result.message || "Error al registrar participante",
-        );
-      }
-
-      return result;
-    } catch (error: any) {
-      if (error instanceof TypeError && error.message.includes("Failed to fetch")) {
-        return undefined;
-      }
-      throw error;
+    if (!response.ok) {
+      throw new Error(
+        result.msg || result.message || "Error al registrar participante",
+      );
     }
+
+    return result;
   },
 
   async getAll(): Promise<Participant[] | undefined> {
@@ -87,108 +80,112 @@ export const participantService = {
     }
   },
 
-  async searchByDni(dni: string): Promise<Participant | null | undefined> {
+  /**
+   * Obtiene un participante por su ID externo.
+   * Intenta obtener datos completos (incluyendo responsable) desde /participants/:id.
+   * Si falla, hace fallback a /users para obtener datos básicos.
+   */
+  async getById(externalId: string): Promise<Participant | null> {
+    // Usar el endpoint específico de participantes que incluye datos del responsable
     try {
-      const response = await fetch(`${API_URL}/users/search`, {
-        method: "POST",
-        headers: this.getHeaders(),
-        body: JSON.stringify({ dni }),
-      });
-
-      if (!response.ok) {
-        return null;
-      }
-
-      const result = await response.json();
-
-      if (result.status === "ok" && result.data) {
-        return {
-          id:
-            result.data.external_id ||
-            result.data.java_external ||
-            result.data.id?.toString(),
-          firstName: result.data.firstName || result.data.first_name || "",
-          lastName: result.data.lastName || result.data.last_name || "",
-          dni: result.data.dni || "",
-          email: result.data.email || "",
-          phone: result.data.phone || "",
-          address: result.data.address || "",
-          type: result.data.type || "PARTICIPANTE",
-          status: result.data.status || "ACTIVO",
-        };
-      }
-
-      return null;
-    } catch (error) {
-      return undefined;
-    }
-  },
-
-  async getById(externalId: string): Promise<Participant | null | undefined> {
-    try {
-      // No hay endpoint individual, obtenemos todos y filtramos
-      const response = await fetch(`${API_URL}/users`, {
+      const response = await fetch(`${API_URL}/participants/${externalId}`, {
         method: "GET",
         headers: this.getHeaders(),
       });
 
-      if (!response.ok) {
-        return null;
+      if (response.ok) {
+        const result = await response.json();
+        const data = result.data || result;
+
+        if (data) {
+          // La API puede devolver estructura plana o anidada {participant: {...}, responsible: {...}}
+          const participantData = data.participant || data;
+          const responsibleData = data.responsible;
+
+          return {
+            id: participantData.external_id || externalId,
+            firstName: participantData.firstName || participantData.first_name || "",
+            lastName: participantData.lastName || participantData.last_name || "",
+            dni: participantData.dni || "",
+            email: participantData.email || "",
+            phone: participantData.phone || participantData.phono || "",
+            address: participantData.address || participantData.direction || "",
+            age: participantData.age || 0,
+            type: participantData.type || participantData.type_stament || "PARTICIPANTE",
+            program: participantData.program || undefined,
+            role: participantData.role || "USER",
+            status: participantData.status || "ACTIVO",
+            responsible: responsibleData ? {
+              name: responsibleData.name || "",
+              dni: responsibleData.dni || "",
+              phone: responsibleData.phone || "",
+            } : undefined,
+          };
+        }
       }
-
-      const result = await response.json();
-      const list = Array.isArray(result) ? result : result.data || [];
-
-      const found = list.find(
-        (p: any) =>
-          p.external_id === externalId ||
-          p.java_external === externalId ||
-          p.id?.toString() === externalId
-      );
-
-      if (found) {
-        return {
-          id: found.external_id || found.java_external || found.id?.toString(),
-          firstName: found.firstName || found.first_name || "",
-          lastName: found.lastName || found.last_name || "",
-          dni: found.dni || "",
-          email: found.email || "",
-          phone: found.phone || found.phono || "",
-          address: found.address || found.direction || "",
-          age: found.age || 0,
-          type: found.type || found.type_stament || "PARTICIPANTE",
-          role: found.role || "USER",
-          status: found.status || "ACTIVO",
-        };
-      }
-
-      return null;
     } catch (error) {
-      return undefined;
+      console.error("Error fetching participant by ID:", error);
     }
+
+    // Fallback: obtener todos y filtrar (no incluye datos del responsable)
+    const response = await fetch(`${API_URL}/users`, {
+      method: "GET",
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const result = await response.json();
+    const list = Array.isArray(result) ? result : result.data || [];
+
+    const found = list.find(
+      (p: any) =>
+        p.external_id === externalId ||
+        p.java_external === externalId ||
+        p.id?.toString() === externalId
+    );
+
+    if (found) {
+      return {
+        id: found.external_id || found.java_external || found.id?.toString(),
+        firstName: found.firstName || found.first_name || "",
+        lastName: found.lastName || found.last_name || "",
+        dni: found.dni || "",
+        email: found.email || "",
+        phone: found.phone || found.phono || "",
+        address: found.address || found.direction || "",
+        age: found.age || 0,
+        type: found.type || found.type_stament || "PARTICIPANTE",
+        program: found.program || undefined,
+        role: found.role || "USER",
+        status: found.status || "ACTIVO",
+        responsible: found.responsible ? {
+          name: found.responsible.name || "",
+          dni: found.responsible.dni || "",
+          phone: found.responsible.phone || "",
+        } : undefined,
+      };
+    }
+
+    return null;
   },
 
   async changeStatus(externalId: string, newStatus: string) {
-    try {
-      const response = await fetch(`${API_URL}/users/${externalId}/status`, {
-        method: "PUT",
-        headers: this.getHeaders(),
-        body: JSON.stringify({ status: newStatus }),
-      });
+    const response = await fetch(`${API_URL}/users/${externalId}/status`, {
+      method: "PUT",
+      headers: this.getHeaders(),
+      body: JSON.stringify({ status: newStatus }),
+    });
 
-      const result = await response.json();
+    const result = await response.json();
 
-      if (!response.ok) {
-        throw new Error(result.msg || "Error al cambiar estado");
-      }
-
-      return result;
-    } catch (error: any) {
-      if (error instanceof TypeError && error.message.includes("Failed to fetch")) {
-        return undefined;
-      }
-      throw error;
+    if (!response.ok) {
+      throw new Error(result.msg || "Error al cambiar estado");
     }
+
+    return result;
   },
 
   async createInitiation(data: any) {
@@ -290,8 +287,6 @@ export const participantService = {
           program: data.program,
         };
 
-      console.log("Payload enviado:", JSON.stringify(payload, null, 2));
-
       const response = await fetch(`${API_URL}/save-participants`, {
         method: "POST",
         headers: this.getHeaders(),
@@ -300,38 +295,38 @@ export const participantService = {
 
       const result = await response.json();
 
-      // Retornar la respuesta completa, incluyendo errores del servidor
+      if (!response.ok) {
+        throw result; // el backend manda { data, msg, etc }
+      }
       return result;
     } catch (error: any) {
       if (error instanceof TypeError && error.message.includes("Failed to fetch")) {
-        return undefined;
+        throw { type: "SERVER_DOWN" };
       }
       throw error;
     }
   },
 
-  async getActiveParticipantsCounts(): Promise<{ adult: number; minor: number } | undefined> {
-    try {
-      const response = await fetch(`${API_URL}/participants/active/count`, {
-        method: "GET",
-        headers: this.getHeaders(),
-      });
+  async getActiveParticipantsCounts(): Promise<{ adult: number; minor: number }> {
+    const response = await fetch(`${API_URL}/participants/active/count`, {
+      method: "GET",
+      headers: this.getHeaders(),
+    });
 
-      const result = await response.json();
+    const result = await response.json();
 
-      if (!response.ok) {
-        throw new Error(result.msg || "Error al obtener totales de participantes");
-      }
-
-      return result.data;
-    } catch (error: any) {
-      if (error instanceof TypeError && error.message.includes("Failed to fetch")) {
-        return undefined;
-      }
-      throw error;
+    if (!response.ok) {
+      throw new Error(result.msg || "Error al obtener totales de participantes");
     }
+
+    return result.data;
   },
 
+  /**
+   * Actualiza un participante existente.
+   * Si tiene datos de responsable (solo permitido si ya tenía responsable previamente),
+   * envía estructura anidada {participant: {...}, responsible: {...}}.
+   */
   async updateParticipant(externalId: string, data: UpdateParticipantData) {
     try {
       const response = await fetch(`${API_URL}/participants/${externalId}`, {
@@ -341,17 +336,13 @@ export const participantService = {
       });
 
       const result = await response.json();
-
-      if (!response.ok && response.status !== 400) {
-        throw new Error(result.msg || "Error al actualizar participante");
+      if (!response.ok) {
+        throw result;
       }
-
       return result;
     } catch (error: any) {
       if (error instanceof TypeError && error.message.includes("Failed to fetch")) {
-        window.dispatchEvent(new CustomEvent('SERVER_DOWN', { 
-          detail: { message: "No se puede conectar con el servidor." } 
-        }));
+        throw { type: "SERVER_DOWN" };
       }
       throw error;
     }
