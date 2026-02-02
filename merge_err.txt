@@ -1,5 +1,0 @@
-error: Los cambios locales de los siguientes archivos serán sobrescritos al fusionar:
-	src/app/(dashboard)/pages/participant/edit/[id]/page.tsx
-	src/services/participant.service.ts
-Por favor, confirma tus cambios o aguárdalos antes de fusionar.
-Abortando
