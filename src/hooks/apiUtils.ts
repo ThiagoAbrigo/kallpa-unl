@@ -1,3 +1,11 @@
+/**
+ * Cliente HTTP con axios que maneja automáticamente:
+ * - Token JWT en headers
+ * - Errores de red (dispara SERVER_DOWN)
+ * - Errores 5xx (dispara SERVER_DOWN)
+ * - Errores 401 (dispara SESSION_EXPIRED)
+ * - Errores 400 (retorna la respuesta con errores de validación)
+ */
 import axios from "axios";
 
 const apiClient = axios.create({
@@ -17,9 +25,7 @@ apiClient.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 apiClient.interceptors.response.use(
@@ -28,37 +34,25 @@ apiClient.interceptors.response.use(
     if (!error.response) {
       const serverMessage = 'No se puede conectar con el servidor. Por favor intenta nuevamente más tarde.';
       if (typeof window !== 'undefined') {
-        const event = new CustomEvent('SERVER_DOWN', {
-          detail: { message: serverMessage }
-        });
-        window.dispatchEvent(event);
+        window.dispatchEvent(new CustomEvent('SERVER_DOWN', { detail: { message: serverMessage } }));
       }
-      // Marcar como manejado globalmente
       error.handledGlobally = true;
       return Promise.reject(error);
     }
 
-    // Manejo específico de 5xx (error del servidor)
-    if (error.response && error.response.status >= 500) {
+    if (error.response.status >= 500) {
       const serverMessage = error.response.data?.msg || 'El servidor está en mantenimiento. Intenta más tarde.';
       if (typeof window !== 'undefined') {
-        const event = new CustomEvent('SERVER_DOWN', {
-          detail: { message: serverMessage }
-        });
-        window.dispatchEvent(event);
+        window.dispatchEvent(new CustomEvent('SERVER_DOWN', { detail: { message: serverMessage } }));
       }
       error.handledGlobally = true;
       return Promise.reject(error);
     }
 
-    // Manejo de sesión expirada (401)
-    if (error.response && error.response.status === 401) {
+    if (error.response.status === 401) {
       const serverMessage = error.response.data?.msg || "Tu sesión ha expirado. Por favor inicia sesión nuevamente.";
       if (typeof window !== 'undefined') {
-        const event = new CustomEvent('SESSION_EXPIRED', {
-          detail: { message: serverMessage }
-        });
-        window.dispatchEvent(event);
+        window.dispatchEvent(new CustomEvent('SESSION_EXPIRED', { detail: { message: serverMessage } }));
       }
     }
 
@@ -71,11 +65,7 @@ export const get = async <T>(url: string): Promise<T | undefined> => {
     const response = await apiClient.get<T>(url);
     return response.data;
   } catch (error: any) {
-    if (error.handledGlobally) {
-      // El error ya fue manejado globalmente (SERVER_DOWN mostrado)
-      // Retornar undefined para evitar unhandledrejection
-      return undefined;
-    }
+    if (error.handledGlobally) return undefined;
     return Promise.reject(error);
   }
 };
@@ -85,31 +75,19 @@ export const post = async <T, B>(url: string, data: B): Promise<T | undefined> =
     const response = await apiClient.post<T>(url, data);
     return response.data;
   } catch (error: any) {
-    if (error.handledGlobally) {
-      // El error ya fue manejado globalmente (SERVER_DOWN mostrado)
-      // Retornar undefined para evitar unhandledrejection
-      return undefined;
-    }
-    // Si es error 400 (validación), retornar la respuesta con los errores
-    if (error.response && error.response.status === 400) {
-      return error.response.data;
-    }
+    if (error.handledGlobally) return undefined;
+    if (error.response?.status === 400) return error.response.data;
     return Promise.reject(error);
   }
 };
 
-// POST con autenticación (usa el interceptor automáticamente)
 export const postWithAuth = async <T, B>(url: string, data: B): Promise<T | undefined> => {
   try {
     const response = await apiClient.post<T>(url, data);
     return response.data;
   } catch (error: any) {
-    if (error.handledGlobally) {
-      return undefined;
-    }
-    if (error.response) {
-      return error.response.data;
-    }
+    if (error.handledGlobally) return undefined;
+    if (error.response) return error.response.data;
     throw error;
   }
 };
@@ -119,13 +97,8 @@ export const put = async <T, B>(url: string, data: B): Promise<T | undefined> =>
     const response = await apiClient.put<T>(url, data);
     return response.data;
   } catch (error: any) {
-    if (error.handledGlobally) {
-      return undefined;
-    }
-    // Si es error 400 (validación), retornar la respuesta con los errores
-    if (error.response && error.response.status === 400) {
-      return error.response.data;
-    }
+    if (error.handledGlobally) return undefined;
+    if (error.response?.status === 400) return error.response.data;
     return Promise.reject(error);
   }
 };
@@ -135,9 +108,7 @@ export const del = async <T>(url: string): Promise<T | undefined> => {
     const response = await apiClient.delete<T>(url);
     return response.data;
   } catch (error: any) {
-    if (error.handledGlobally) {
-      return undefined;
-    }
+    if (error.handledGlobally) return undefined;
     return Promise.reject(error);
   }
 };
