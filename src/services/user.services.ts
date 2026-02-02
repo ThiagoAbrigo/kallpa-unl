@@ -1,7 +1,5 @@
 import { CreateUserRequest, CreateUserResponse } from "../types/user";
-import { get, put } from "@/hooks/apiUtils";
-
-const API_URL = "http://localhost:5000/api";
+import { get, post, put } from "@/hooks/apiUtils";
 
 export interface UserProfileData {
   firstName: string;
@@ -12,33 +10,15 @@ export interface UserProfileData {
 }
 
 export const userService = {
-  getHeaders() {
-    const token = localStorage.getItem("token");
-    return {
-      "Content-Type": "application/json",
-      Authorization: token ? `Bearer ${token}` : "",
-    };
-  },
-  async createUser(data: CreateUserRequest): Promise<CreateUserResponse> {
-    try {
-      const response = await fetch(`${API_URL}/save-user`, {
-        method: "POST",
-        headers: this.getHeaders(),
-        body: JSON.stringify(data),
-      });
-
-      const result = await response.json();
-      if (!response.ok) {
-        throw result;
-      }
-
-      return result;
-    } catch (error: any) {
-      if (error instanceof TypeError && error.message.includes("Failed to fetch")) {
-        throw { type: "SERVER_DOWN" };
-      }
-      throw error;
+  async createUser(data: CreateUserRequest): Promise<CreateUserResponse | undefined> {
+    const result = await post<CreateUserResponse, CreateUserRequest>("/save-user", data);
+    
+    // Si result es undefined, fue error manejado globalmente (SERVER_DOWN/SESSION_EXPIRED)
+    if (!result) {
+      return undefined;
     }
+
+    return result;
   },
 
   async getProfile() {

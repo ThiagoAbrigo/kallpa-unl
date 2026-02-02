@@ -179,6 +179,12 @@ export const RegisterParticipantForm = ({ participantId }: RegisterParticipantFo
 
         const response = await participantService.updateParticipant(participantId, updateData);
 
+        // Si response es undefined, fue error manejado globalmente (SERVER_DOWN/SESSION_EXPIRED)
+        if (!response) {
+          setSubmitting(false);
+          return;
+        }
+
         if (response.status === "success" || response.code === 200) {
           triggerAlert(
             "success",
@@ -197,6 +203,20 @@ export const RegisterParticipantForm = ({ participantId }: RegisterParticipantFo
           ...formData,
           age: formData.age ? parseInt(formData.age) : 0,
         });
+
+        // Si response es undefined, fue error manejado globalmente
+        if (!response) {
+          setSubmitting(false);
+          return;
+        }
+
+        // Si hay errores de validación (400)
+        if (response.code === 400 && response.data) {
+          setErrors(response.data);
+          setSubmitting(false);
+          return;
+        }
+
         triggerAlert(
           "success",
           "Participante registrado",
@@ -219,18 +239,7 @@ export const RegisterParticipantForm = ({ participantId }: RegisterParticipantFo
         });
       }
     } catch (err: any) {
-      if (err?.name === "TypeError" || err?.message?.includes("fetch") || !err?.response) {
-        window.dispatchEvent(
-          new CustomEvent("SERVER_DOWN", {
-            detail: {
-              message:
-                "No se puede conectar con el servidor. Por favor intenta nuevamente más tarde.",
-            },
-          }),
-        );
-        return;
-      }
-      
+      // Los errores de red y 401 ya son manejados por apiUtils
       if (err?.code === 400 && err?.data) {
         setErrors(err.data);
         return;

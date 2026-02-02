@@ -83,7 +83,18 @@ export const UserForm = () => {
         role: formData.role as "DOCENTE" | "PASANTE" | "ADMINISTRADOR",
       };
 
-      await userService.createUser(payload);
+      const response = await userService.createUser(payload);
+
+      // Si response es undefined, fue error manejado globalmente (SERVER_DOWN/SESSION_EXPIRED)
+      if (!response) {
+        return;
+      }
+
+      // Si hay errores de validación (400)
+      if (response.code === 400 && response.data) {
+        setErrors(response.data as Record<string, string>);
+        return;
+      }
 
       showTemporaryAlert("success", "Éxito", "Usuario registrado correctamente");
 
@@ -98,19 +109,7 @@ export const UserForm = () => {
         role: "",
       });
     } catch (err: any) {
-      // Si es error de red (fetch failed), disparar SERVER_DOWN
-      if (err?.name === "TypeError" || err?.message?.includes("fetch") || !err?.response) {
-        window.dispatchEvent(
-          new CustomEvent("SERVER_DOWN", {
-            detail: {
-              message:
-                "No se puede conectar con el servidor. Por favor intenta nuevamente más tarde.",
-            },
-          }),
-        );
-        return;
-      }
-      
+      // Los errores de red y 401 ya son manejados por apiUtils
       if (err?.data && typeof err.data === "object") {
         setErrors(err.data);
         return;

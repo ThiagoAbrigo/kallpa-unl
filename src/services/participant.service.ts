@@ -1,57 +1,107 @@
 import { Participant, UpdateParticipantData } from "@/types/participant";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+import { get, post, put } from "@/hooks/apiUtils";
 
 export const participantService = {
-  getHeaders() {
-    const token = localStorage.getItem("token");
-    return {
-      "Content-Type": "application/json",
-      Authorization: token || "",
-    };
+  // Método para crear participante y manejar errores del backend
+  async createParticipant(data: any) {
+    const isMinor = data.age < 18 || data.type === "INICIACION";
+
+    const payload = isMinor
+      ? {
+          type: "INICIACION",
+          program: data.program,
+          participant: {
+            firstName: data.firstName,
+            lastName: data.lastName,
+            age: data.age,
+            dni: data.dni,
+            phone: data.phone || "",
+            email: data.email || "",
+            address: data.address || "",
+          },
+          responsible: {
+            name: data.responsibleName,
+            dni: data.responsibleDni,
+            phone: data.responsiblePhone,
+          },
+        }
+      : {
+          firstName: data.firstName,
+          lastName: data.lastName,
+          age: data.age,
+          dni: data.dni,
+          phone: data.phone || "",
+          email: data.email || `${data.dni}@participante.local`,
+          address: data.address || "",
+          type: data.type,
+          program: data.program,
+        };
+
+    const result = await post<any, any>("/save-participants", payload);
+    
+    // Si result es undefined, fue error manejado globalmente (SERVER_DOWN/SESSION_EXPIRED)
+    if (!result) {
+      return undefined;
+    }
+
+    return result;
   },
 
-  async create(data: any) {
-    const payload = {
-      firstName: data.firstName,
-      lastName: data.lastName,
-      dni: data.dni,
-      email: data.email || `${data.dni}@participante.local`,
-      phone: data.phone || "",
-      address: data.address || "",
-      age: data.age || 0,
-      type: data.type,
-      password: data.password || undefined,
-    };
+  async getById(externalId: string): Promise<Participant | null> {
+    const result = await get<any>(`/participants/${externalId}`);
+    
+    // Si result es undefined, fue error manejado globalmente
+    if (!result) {
+      return null;
+    }
 
-    const response = await fetch(`${API_URL}/users`, {
-      method: "POST",
-      headers: this.getHeaders(),
-      body: JSON.stringify(payload),
-    });
+    const found = result.data || result;
 
-    const result = await response.json();
+    if (found) {
+      return {
+        id: found.external_id || found.java_external || found.id?.toString(),
+        firstName: found.firstName || found.first_name || "",
+        lastName: found.lastName || found.last_name || "",
+        dni: found.dni || "",
+        email: found.email || "",
+        phone: found.phone || found.phono || "",
+        address: found.address || found.direction || "",
+        age: found.age || 0,
+        type: found.type || found.type_stament || "PARTICIPANTE",
+        role: found.role || "USER",
+        status: found.status || "ACTIVO",
+        program: found.program || "",
+        responsible: found.responsible
+          ? {
+              name: found.responsible.name || "",
+              dni: found.responsible.dni || "",
+              phone: found.responsible.phone || "",
+            }
+          : undefined,
+      };
+    }
 
-    if (!response.ok) {
-      throw new Error(
-        result.msg || result.message || "Error al registrar participante",
-      );
+    return null;
+  },
+
+  async updateParticipant(externalId: string, data: UpdateParticipantData) {
+    const result = await put<any, UpdateParticipantData>(`/participants/${externalId}`, data);
+    
+    // Si result es undefined, fue error manejado globalmente
+    if (!result) {
+      return undefined;
     }
 
     return result;
   },
 
   async getAll(): Promise<Participant[]> {
-    const response = await fetch(`${API_URL}/users`, {
-      method: "GET",
-      headers: this.getHeaders(),
-    });
-
-    if (!response.ok) {
+    const result = await get<any>("/users");
+    
+    if (!result) {
       return [];
     }
 
-    const result = await response.json();
     const list = Array.isArray(result) ? result : result.data || [];
 
     return list
@@ -77,17 +127,11 @@ export const participantService = {
   },
 
   async searchByDni(dni: string): Promise<Participant | null> {
-    const response = await fetch(`${API_URL}/users/search`, {
-      method: "POST",
-      headers: this.getHeaders(),
-      body: JSON.stringify({ dni }),
-    });
+    const result = await post<any, { dni: string }>("/users/search", { dni });
 
-    if (!response.ok) {
+    if (!result) {
       return null;
     }
-
-    const result = await response.json();
 
     if (result.status === "ok" && result.data) {
       return {
@@ -109,56 +153,11 @@ export const participantService = {
     return null;
   },
 
-  async getById(externalId: string): Promise<Participant | null> {
-    // Usar el endpoint específico para obtener participante
-    const response = await fetch(`${API_URL}/participants/${externalId}`, {
-      method: "GET",
-      headers: this.getHeaders(),
-    });
-
-    if (!response.ok) {
-      return null;
-    }
-
-    const result = await response.json();
-    const found = result.data || result;
-
-    if (found) {
-      return {
-        id: found.external_id || found.java_external || found.id?.toString(),
-        firstName: found.firstName || found.first_name || "",
-        lastName: found.lastName || found.last_name || "",
-        dni: found.dni || "",
-        email: found.email || "",
-        phone: found.phone || found.phono || "",
-        address: found.address || found.direction || "",
-        age: found.age || 0,
-        type: found.type || found.type_stament || "PARTICIPANTE",
-        role: found.role || "USER",
-        status: found.status || "ACTIVO",
-        program: found.program || "",
-        responsible: found.responsible ? {
-          name: found.responsible.name || "",
-          dni: found.responsible.dni || "",
-          phone: found.responsible.phone || "",
-        } : undefined,
-      };
-    }
-
-    return null;
-  },
-
   async changeStatus(externalId: string, newStatus: string) {
-    const response = await fetch(`${API_URL}/users/${externalId}/status`, {
-      method: "PUT",
-      headers: this.getHeaders(),
-      body: JSON.stringify({ status: newStatus }),
-    });
+    const result = await put<any, { status: string }>(`/users/${externalId}/status`, { status: newStatus });
 
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.msg || "Error al cambiar estado");
+    if (!result) {
+      return undefined;
     }
 
     return result;
@@ -180,33 +179,22 @@ export const participantService = {
       },
     };
 
-    const response = await fetch(`${API_URL}/users/initiation`, {
-      method: "POST",
-      headers: this.getHeaders(),
-      body: JSON.stringify(payload),
-    });
+    const result = await post<any, any>("/users/initiation", payload);
 
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.msg || "Error al registrar iniciación");
+    if (!result) {
+      return undefined;
     }
 
     return result;
   },
 
-
   async getPasantes(): Promise<Participant[]> {
-    const response = await fetch(`${API_URL}/users`, {
-      method: "GET",
-      headers: this.getHeaders(),
-    });
+    const result = await get<any>("/users");
 
-    if (!response.ok) {
+    if (!result) {
       return [];
     }
 
-    const result = await response.json();
     const list = Array.isArray(result) ? result : result.data || [];
 
     return list
@@ -223,93 +211,38 @@ export const participantService = {
         role: p.role || "USER",
         status: p.status || "ACTIVO",
       }))
-      .filter((p: any) => p.type === 'PASANTE');
-  },
-
-  // Método para crear participante y manejar errores del backend
-  async createParticipant(data: any) {
-    const isMinor = data.age < 18 || data.type === "INICIACION";
-
-    const payload = isMinor
-      ? {
-        type: "INICIACION",
-        program: data.program,
-        participant: {
-          firstName: data.firstName,
-          lastName: data.lastName,
-          age: data.age,
-          dni: data.dni,
-          phone: data.phone || "",
-          email: data.email || "",
-          address: data.address || "",
-        },
-        responsible: {
-          name: data.responsibleName,
-          dni: data.responsibleDni,
-          phone: data.responsiblePhone,
-        },
-      }
-      : {
-        firstName: data.firstName,
-        lastName: data.lastName,
-        age: data.age,
-        dni: data.dni,
-        phone: data.phone || "",
-        email: data.email || `${data.dni}@participante.local`,
-        address: data.address || "",
-        type: data.type,
-        program: data.program,
-      };
-
-    const response = await fetch(`${API_URL}/save-participants`, {
-      method: "POST",
-      headers: this.getHeaders(),
-      body: JSON.stringify(payload),
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw result;
-    }
-
-    return result;
+      .filter((p: any) => p.type === "PASANTE");
   },
 
   async getActiveParticipantsCounts(): Promise<{ adult: number; minor: number }> {
-    const response = await fetch(`${API_URL}/participants/active/count`, {
-      method: "GET",
-      headers: this.getHeaders(),
-    });
+    const result = await get<any>("/participants/active/count");
 
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.msg || "Error al obtener totales de participantes");
+    if (!result) {
+      throw new Error("Error al obtener totales de participantes");
     }
 
     return result.data;
   },
 
-  async updateParticipant(externalId: string, data: UpdateParticipantData) {
-    const response = await fetch(`${API_URL}/participants/${externalId}`, {
-      method: "PUT",
-      headers: this.getHeaders(),
-      body: JSON.stringify(data),
-    });
+  async create(data: any) {
+    const payload = {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      dni: data.dni,
+      email: data.email || `${data.dni}@participante.local`,
+      phone: data.phone || "",
+      address: data.address || "",
+      age: data.age || 0,
+      type: data.type,
+      password: data.password || undefined,
+    };
 
-    const result = await response.json();
+    const result = await post<any, any>("/users", payload);
 
-    // Si es 400, retornar el resultado con los errores de validación
-    if (response.status === 400) {
-      return result;
-    }
-
-    // Si es otro error (404, 500, etc), lanzar excepción
-    if (!response.ok) {
-      throw new Error(result.msg || "Error al actualizar participante");
+    if (!result) {
+      return undefined;
     }
 
     return result;
-  }
+  },
 };
