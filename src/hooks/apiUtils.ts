@@ -90,6 +90,10 @@ export const post = async <T, B>(url: string, data: B): Promise<T | undefined> =
       // Retornar undefined para evitar unhandledrejection
       return undefined;
     }
+    // Si es error 400 (validación), retornar la respuesta con los errores
+    if (error.response && error.response.status === 400) {
+      return error.response.data;
+    }
     return Promise.reject(error);
   }
 };
@@ -117,6 +121,10 @@ export const put = async <T, B>(url: string, data: B): Promise<T | undefined> =>
   } catch (error: any) {
     if (error.handledGlobally) {
       return undefined;
+    }
+    // Si es error 400 (validación), retornar la respuesta con los errores
+    if (error.response && error.response.status === 400) {
+      return error.response.data;
     }
     return Promise.reject(error);
   }

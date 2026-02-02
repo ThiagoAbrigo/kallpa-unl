@@ -6,36 +6,27 @@ export const participantService = {
   async createParticipant(data: any) {
     const isMinor = data.age < 18 || data.type === "INICIACION";
 
-    const payload = isMinor
-      ? {
-          type: "INICIACION",
-          program: data.program,
-          participant: {
-            firstName: data.firstName,
-            lastName: data.lastName,
-            age: data.age,
-            dni: data.dni,
-            phone: data.phone || "",
-            email: data.email || "",
-            address: data.address || "",
-          },
-          responsible: {
-            name: data.responsibleName,
-            dni: data.responsibleDni,
-            phone: data.responsiblePhone,
-          },
-        }
-      : {
-          firstName: data.firstName,
-          lastName: data.lastName,
-          age: data.age,
-          dni: data.dni,
-          phone: data.phone || "",
-          email: data.email || `${data.dni}@participante.local`,
-          address: data.address || "",
-          type: data.type,
-          program: data.program,
-        };
+    // Payload unificado - estructura plana para todos
+    const payload: any = {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      age: data.age,
+      dni: data.dni,
+      phone: data.phone || "",
+      email: data.email || `${data.dni}@participante.local`,
+      address: data.address || "",
+      type: data.type,
+      program: data.program,
+    };
+
+    // Si es menor, agregar datos del responsable
+    if (isMinor) {
+      payload.responsible = {
+        name: data.responsibleName,
+        dni: data.responsibleDni,
+        phone: data.responsiblePhone,
+      };
+    }
 
     const result = await post<any, any>("/save-participants", payload);
     
