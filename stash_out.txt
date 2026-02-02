@@ -1,0 +1,31 @@
+Auto-fusionando src/app/(dashboard)/pages/participant/edit/[id]/page.tsx
+CONFLICTO (contenido): Conflicto de fusión en src/app/(dashboard)/pages/participant/edit/[id]/page.tsx
+Auto-fusionando src/services/participant.service.ts
+CONFLICTO (contenido): Conflicto de fusión en src/services/participant.service.ts
+En la rama 57-users-corrections
+Tu rama está adelantada a 'origin/57-users-corrections' por 8 commits.
+  (usa "git push" para publicar tus commits locales)
+
+Cambios a ser confirmados:
+  (usa "git restore --staged <archivo>..." para sacar del área de stage)
+	modificados:     src/components/Tables/participant-table.tsx
+
+Rutas no fusionadas:
+  (usa "git restore --staged <archivo>..." para sacar del área de stage)
+  (usa "git add <archivo>..." para marcar una resolución)
+	modificados por ambos:  src/app/(dashboard)/pages/participant/edit/[id]/page.tsx
+	modificados por ambos:  src/services/participant.service.ts
+
+Archivos sin seguimiento:
+  (usa "git add <archivo>..." para incluirlo a lo que será confirmado)
+	branches.txt
+	merge_err.txt
+	merge_err2.txt
+	merge_out.txt
+	merge_out2.txt
+	merge_status.txt
+	stash_err.txt
+	stash_out.txt
+	status.txt
+
+La entrada de stash se guardó en caso de ser necesario nuevamente.

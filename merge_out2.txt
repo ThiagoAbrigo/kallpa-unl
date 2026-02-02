@@ -1,0 +1,20 @@
+Actualizando ba66771..27b86c9
+Fast-forward
+ .../pages/attendance/historial/page.tsx            | 166 +++++++++++----
+ src/app/(dashboard)/pages/attendance/page.tsx      | 131 ++++++++----
+ .../pages/attendance/participantes/page.tsx        |  80 +++++---
+ .../pages/attendance/programar/page.tsx            | 226 ++++++++++++++++-----
+ .../pages/attendance/programas/page.tsx            |  70 +++----
+ .../(dashboard)/pages/attendance/registro/page.tsx |  92 +++++++--
+ .../(dashboard)/pages/attendance/sesiones/page.tsx |  56 ++++-
+ .../pages/participant/edit/[id]/page.tsx           |   2 -
+ .../FormElements/DatePicker/DatePickerTwo.tsx      |  13 +-
+ src/components/Forms/register-participant-form.tsx |  50 +++--
+ src/components/Forms/user-form.tsx                 |  53 ++---
+ src/lib/utils.ts                                   |  22 ++
+ src/services/activity.service.ts                   |   2 +-
+ src/services/attendance.services.ts                | 148 ++++++++++----
+ src/services/participant.service.ts                | 202 +++++++++---------
+ src/services/user.services.ts                      |  39 ++--
+ src/types/attendance.ts                            |  46 +++--
+ 17 files changed, 938 insertions(+), 460 deletions(-)

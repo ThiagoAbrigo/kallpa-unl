@@ -110,8 +110,8 @@ export const participantService = {
   },
 
   async getById(externalId: string): Promise<Participant | null> {
-    // No hay endpoint individual, obtenemos todos y filtramos
-    const response = await fetch(`${API_URL}/users`, {
+    // Usar el endpoint específico para obtener participante
+    const response = await fetch(`${API_URL}/participants/${externalId}`, {
       method: "GET",
       headers: this.getHeaders(),
     });
@@ -121,14 +121,7 @@ export const participantService = {
     }
 
     const result = await response.json();
-    const list = Array.isArray(result) ? result : result.data || [];
-
-    const found = list.find(
-      (p: any) =>
-        p.external_id === externalId ||
-        p.java_external === externalId ||
-        p.id?.toString() === externalId
-    );
+    const found = result.data || result;
 
     if (found) {
       return {
@@ -143,6 +136,12 @@ export const participantService = {
         type: found.type || found.type_stament || "PARTICIPANTE",
         role: found.role || "USER",
         status: found.status || "ACTIVO",
+        program: found.program || "",
+        responsible: found.responsible ? {
+          name: found.responsible.name || "",
+          dni: found.responsible.dni || "",
+          phone: found.responsible.phone || "",
+        } : undefined,
       };
     }
 
@@ -301,7 +300,13 @@ export const participantService = {
 
     const result = await response.json();
 
-    if (!response.ok && response.status !== 400) {
+    // Si es 400, retornar el resultado con los errores de validación
+    if (response.status === 400) {
+      return result;
+    }
+
+    // Si es otro error (404, 500, etc), lanzar excepción
+    if (!response.ok) {
       throw new Error(result.msg || "Error al actualizar participante");
     }
 
