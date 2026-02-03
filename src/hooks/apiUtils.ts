@@ -90,6 +90,10 @@ export const post = async <T, B>(url: string, data: B): Promise<T | undefined> =
       // Retornar undefined para evitar unhandledrejection
       return undefined;
     }
+    // Retornar errores de validación (400) para que el formulario los maneje
+    if (error.response?.status === 400) {
+      return error.response.data;
+    }
     return Promise.reject(error);
   }
 };
@@ -117,6 +121,10 @@ export const put = async <T, B>(url: string, data: B): Promise<T | undefined> =>
   } catch (error: any) {
     if (error.handledGlobally) {
       return undefined;
+    }
+    // Retornar errores de validación (400) para que el formulario los maneje
+    if (error.response?.status === 400) {
+      return error.response.data;
     }
     return Promise.reject(error);
   }
