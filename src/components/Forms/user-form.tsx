@@ -9,6 +9,7 @@ import ErrorMessage from "../FormElements/errormessage";
 import { ShowcaseSection } from "../Layouts/showcase-section";
 import { Alert } from "../ui-elements/alert";
 import { Button } from "../ui-elements/button";
+import { RefreshCw } from "lucide-react";
 
 export const UserForm = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -16,6 +17,7 @@ export const UserForm = () => {
   const [alertType, setAlertType] = useState<"success" | "error" | "warning">("success");
   const [alertTitle, setAlertTitle] = useState("");
   const [alertDescription, setAlertDescription] = useState("");
+  const [saving, setSaving] = useState(false);
   const showTemporaryAlert = (
     type: "success" | "error" | "warning",
     title: string,
@@ -70,19 +72,7 @@ export const UserForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-
-    // Manual validation
-    const newErrors: Record<string, string> = {};
-    if (!formData.firstName) newErrors.firstName = "El nombre es obligatorio";
-    if (!formData.lastName) newErrors.lastName = "El apellido es obligatorio";
-    if (!formData.dni) newErrors.dni = "La cédula es obligatoria";
-    if (!formData.email) newErrors.email = "El correo electrónico es obligatorio";
-    if (!formData.password) newErrors.password = "La contraseña es obligatoria";
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
+    setSaving(true);
 
     try {
       const payload: CreateUserRequest = {
@@ -111,29 +101,25 @@ export const UserForm = () => {
         role: "",
       });
     } catch (err: any) {
-      if (!err.response) {
-        console.error("No response from server", err);
+      if (err?.message === "SERVER_DOWN" || err?.message === "SESSION_EXPIRED") return;
+
+      if (err?.data && typeof err.data === "object") {
+        setErrors(err.data);
         return;
       }
 
-      const response = err.response?.data || err;
-
-      if (response && response.status === "error") {
-        const errorSource = response.data?.validation_errors || response.data;
-
-        if (errorSource && typeof errorSource === "object") {
-          const fieldErrors: Record<string, string> = {};
-          Object.entries(errorSource).forEach(([key, value]) => {
-            if (typeof value === "string") {
-              fieldErrors[key] = value;
-            }
-          });
-          setErrors(fieldErrors);
-          return;
-        }
+      if (err?.msg || err?.message) {
+        showTemporaryAlert(
+          "error",
+          "Error",
+          err.msg || err.message
+        );
+        return;
       }
 
-      showTemporaryAlert("error", "Error", response?.msg || response?.message || "Error al registrar usuario");
+      showTemporaryAlert("error", "Error", "Error al registrar usuario");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -220,7 +206,6 @@ export const UserForm = () => {
               iconPosition="left"
               icon={<FiMapPin className="text-gray-400" size={18} />}
             />
-            <ErrorMessage message={errors.address} />
           </div>
 
           <div className="mb-4.5 grid grid-cols-1 gap-6 xl:grid-cols-2">
@@ -287,9 +272,11 @@ export const UserForm = () => {
             </ul>
           </div>
 
-          <Button label="Registrar Cuenta"
+          <Button
+            label={saving ? "Registrando..." : "Registrar Cuenta"}
             shape="rounded"
-            icon={<FiSave size={24} />}
+            icon={saving ? <RefreshCw className="animate-spin" size={20} /> : <FiSave size={24} />}
+            disabled={saving}
           />
         </div>
 

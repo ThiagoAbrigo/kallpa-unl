@@ -1,5 +1,6 @@
 import { CreateUserRequest, CreateUserResponse } from "../types/user";
 import { get, put } from "@/hooks/apiUtils";
+import { fetchWithSession } from "./fetchWithSession";
 
 const API_URL = "http://localhost:5000/api";
 
@@ -12,18 +13,22 @@ export interface UserProfileData {
 }
 
 export const userService = {
+  getHeaders() {
+    const token = localStorage.getItem("token");
+    return {
+      "Content-Type": "application/json",
+      Authorization: token ? `Bearer ${token}` : "",
+    };
+  },
   async createUser(data: CreateUserRequest): Promise<CreateUserResponse> {
-    const response = await fetch(`${API_URL}/save-user`, {
+    const response = await fetchWithSession(`${API_URL}/save-user`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: this.getHeaders(),
       body: JSON.stringify(data),
     });
 
     const result = await response.json();
-
-    if (!response.ok || result.status === "error") {
+    if (!response.ok) {
       throw result;
     }
 
