@@ -405,6 +405,7 @@ export default function Programar() {
                 value={formData.name}
                 handleChange={handleChange}
                 placeholder="Ej: Yoga Matutino"
+                allowOnlyAlphanumeric={true}
               />
               <ErrorMessage message={errors.name} />
             </div>
@@ -530,7 +531,7 @@ export default function Programar() {
             )}
 
             <InputGroup
-              label="Ubicación"
+              label="Ubicación (opcional)"
               type="text"
               name="location"
               value={formData.location}
@@ -548,7 +549,7 @@ export default function Programar() {
             />
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Descripción</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Descripción (opcional)</label>
               <textarea
                 name="description"
                 value={formData.description}
