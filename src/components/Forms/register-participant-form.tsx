@@ -10,6 +10,7 @@ import { ShowcaseSection } from "../Layouts/showcase-section";
 import { Button } from "@/components/ui-elements/button";
 import { useRouter } from "next/navigation";
 import Loader from "@/components/Loader/loader";
+import { RefreshCw } from "lucide-react";
 
 interface RegisterParticipantFormProps {
   participantId?: string;
@@ -55,11 +56,14 @@ export const RegisterParticipantForm = ({ participantId }: RegisterParticipantFo
     age: "",
     email: "",
     program: "",
+
+    //SOLO PARA MENORES
     responsibleName: "",
     responsibleDni: "",
     responsiblePhone: "",
   });
 
+  // Cargar datos del participante en modo edición
   useEffect(() => {
     if (!participantId) return;
 
@@ -68,6 +72,7 @@ export const RegisterParticipantForm = ({ participantId }: RegisterParticipantFo
         const participant = await participantService.getById(participantId);
 
         if (participant) {
+          // Verificar si tiene responsable original
           if (participant.responsible) {
             setHasOriginalResponsible(true);
           }
@@ -150,6 +155,7 @@ export const RegisterParticipantForm = ({ participantId }: RegisterParticipantFo
 
     try {
       if (isEditMode && participantId) {
+        // Modo edición: actualizar participante
         const updateData: any = {
           firstName: formData.firstName,
           lastName: formData.lastName,
@@ -162,6 +168,8 @@ export const RegisterParticipantForm = ({ participantId }: RegisterParticipantFo
           program: formData.program || undefined,
         };
 
+        // Solo incluir responsable si el participante YA tenía uno originalmente
+        // (el API no permite agregar responsable en actualización, solo modificar existente)
         if (hasOriginalResponsible && (formData.responsibleName || formData.responsibleDni || formData.responsiblePhone)) {
           updateData.responsible = {
             name: formData.responsibleName,
@@ -171,11 +179,6 @@ export const RegisterParticipantForm = ({ participantId }: RegisterParticipantFo
         }
 
         const response = await participantService.updateParticipant(participantId, updateData);
-
-        if (!response) {
-          setSubmitting(false);
-          return;
-        }
 
         if (response.status === "success" || response.code === 200) {
           triggerAlert(
@@ -190,22 +193,11 @@ export const RegisterParticipantForm = ({ participantId }: RegisterParticipantFo
           setErrors(response.data);
         }
       } else {
+        // Modo registro: crear participante
         const response = await participantService.createParticipant({
           ...formData,
           age: formData.age ? parseInt(formData.age) : 0,
         });
-
-        if (!response) {
-          setSubmitting(false);
-          return;
-        }
-
-        if (response.code === 400 && response.data) {
-          setErrors(response.data);
-          setSubmitting(false);
-          return;
-        }
-
         triggerAlert(
           "success",
           "Participante registrado",
@@ -228,6 +220,8 @@ export const RegisterParticipantForm = ({ participantId }: RegisterParticipantFo
         });
       }
     } catch (err: any) {
+      if (err?.message === "SERVER_DOWN" || err?.message === "SESSION_EXPIRED") return;
+
       if (err?.code === 400 && err?.data) {
         setErrors(err.data);
         return;
@@ -435,7 +429,7 @@ export const RegisterParticipantForm = ({ participantId }: RegisterParticipantFo
                 handleChange={handleChange}
                 disabled={isEditMode ? !hasOriginalResponsible : !isMinor}
               />
-              <ErrorMessage message={errors.responsibleName} />
+              {isMinor && <ErrorMessage message={errors.responsibleName} />}
             </div>
 
             <div className="w-full xl:w-1/2">
@@ -448,7 +442,7 @@ export const RegisterParticipantForm = ({ participantId }: RegisterParticipantFo
                 handleChange={handleChange}
                 disabled={isEditMode ? !hasOriginalResponsible : !isMinor}
               />
-              <ErrorMessage message={errors.responsibleDni} />
+              {isMinor && <ErrorMessage message={errors.responsibleDni} />}
             </div>
           </div>
 
@@ -462,7 +456,7 @@ export const RegisterParticipantForm = ({ participantId }: RegisterParticipantFo
               handleChange={handleChange}
               disabled={isEditMode ? !hasOriginalResponsible : !isMinor}
             />
-            <ErrorMessage message={errors.responsiblePhone} />
+            {isMinor && <ErrorMessage message={errors.responsiblePhone} />}
           </div>
         </div>
 
@@ -470,9 +464,10 @@ export const RegisterParticipantForm = ({ participantId }: RegisterParticipantFo
           type="submit"
           disabled={submitting}
           label={submitting ? "Guardando..." : (isEditMode ? "Guardar Cambios" : "Registrar Participante")}
-          icon={!submitting ? <FiSave size={20} /> : undefined}
+          icon={submitting ? <RefreshCw className="animate-spin" size={20} /> : <FiSave size={20} />}
           variant="primary"
           className="mt-6 w-full"
+          shape="rounded"
         />
       </form>
     </ShowcaseSection>

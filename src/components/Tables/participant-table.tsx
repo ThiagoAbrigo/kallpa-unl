@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 
 interface ParticipantsTableProps {
   data: Participant[];
-  onStatusChange?: () => Promise<void> | void;
+  onStatusChange?: (updatedParticipantId: string, newStatus: "ACTIVO" | "INACTIVO") => void | Promise<void>;
 }
 
 export function ParticipantsTable({ data, onStatusChange }: ParticipantsTableProps) {
@@ -20,25 +20,37 @@ export function ParticipantsTable({ data, onStatusChange }: ParticipantsTablePro
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const statusOptions = ["TODOS", "ACTIVO", "INACTIVO"];
+  const [participantsState, setParticipantsState] = useState<Participant[]>(data);
 
-  const handleToggleStatus = useCallback(async (participant: Participant) => {
-    if (!participant.id) return;
+  const handleToggleStatus = useCallback(
+    async (participant: Participant) => {
+      if (!participant.id) return;
 
-    const newStatus = participant.status === "ACTIVO" ? "INACTIVO" : "ACTIVO";
+      const newStatus = participant.status === "ACTIVO" ? "INACTIVO" : "ACTIVO";
 
-    try {
-      setLoadingId(participant.id);
-      await participantService.changeStatus(participant.id, newStatus);
-      if (onStatusChange) {
-        await onStatusChange();
+      try {
+        setLoadingId(participant.id);
+        await participantService.changeStatus(participant.id, newStatus);
+
+        setParticipantsState((prev) =>
+          prev.map((p) =>
+            p.id === participant.id ? { ...p, status: newStatus } : p
+          )
+        );
+
+        if (onStatusChange) {
+          await onStatusChange(participant.id, newStatus);
+        }
+      } catch (error: any) {
+        if (error?.message === "SESSION_EXPIRED" || error?.message === "SERVER_DOWN") return;
+        console.error("Error al cambiar estado:", error);
+      } finally {
+        setLoadingId(null);
       }
-    } catch (error) {
-      console.error("Error al cambiar estado:", error);
-      alert("Error al cambiar el estado del participante");
-    } finally {
-      setLoadingId(null);
-    }
-  }, [onStatusChange]);
+    },
+    [onStatusChange]
+  );
+
 
   const handleEdit = useCallback((participant: Participant) => {
     if (participant.id) {

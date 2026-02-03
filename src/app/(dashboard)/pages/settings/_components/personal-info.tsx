@@ -4,6 +4,8 @@ import { useState, useEffect, useMemo } from "react";
 import { userService, UserProfileData } from "@/services/user.services";
 import { ShowcaseSection } from "@/components/Layouts/showcase-section";
 import InputGroup from "@/components/FormElements/InputGroup";
+import ErrorMessage from "@/components/FormElements/errormessage";
+import { Alert } from "@/components/ui-elements/alert";
 import { FiEdit, FiAlertTriangle, FiUser, FiPhone, FiMapPin, FiLock } from "react-icons/fi";
 
 const HARDCODED_ACCOUNTS = ["dev@kallpa.com", "admin@kallpa.com"];
@@ -11,6 +13,11 @@ const HARDCODED_ACCOUNTS = ["dev@kallpa.com", "admin@kallpa.com"];
 export function PersonalInfoForm() {
   const [loading, setLoading] = useState(false);
   const [userEmail, setUserEmail] = useState<string>("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertVariant, setAlertVariant] = useState<"success" | "error" | "warning">("success");
+  const [alertTitle, setAlertTitle] = useState("");
+  const [alertDescription, setAlertDescription] = useState("");
   const [formData, setFormData] = useState<UserProfileData>({
     firstName: "",
     lastName: "",
@@ -23,41 +30,90 @@ export function PersonalInfoForm() {
     return HARDCODED_ACCOUNTS.includes(userEmail.toLowerCase());
   }, [userEmail]);
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        const firstName = parsedUser.first_name || parsedUser.firstName || "";
-        const lastName = parsedUser.last_name || parsedUser.lastName || "";
-        const phone = parsedUser.phone || "";
-        const address = parsedUser.address || "";
-        const email = parsedUser.email || "";
+  const triggerAlert = (
+    variant: "success" | "error" | "warning",
+    title: string,
+    description: string,
+  ) => {
+    setAlertVariant(variant);
+    setAlertTitle(title);
+    setAlertDescription(description);
+    setShowAlert(true);
 
-        setUserEmail(email);
-        setFormData({
-          firstName,
-          lastName,
-          phone,
-          address,
-          password: "",
-        });
+    setTimeout(() => {
+      setShowAlert(false);
+    }, 3000);
+  };
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const response: any = await userService.getProfile();
+        
+        if (response && (response.status === "success" || response.data)) {
+          const profileData = response.data || response;
+          const firstName = profileData.first_name || profileData.firstName || "";
+          const lastName = profileData.last_name || profileData.lastName || "";
+          const phone = profileData.phone || "";
+          const address = profileData.address || "";
+          const email = profileData.email || "";
+
+          setUserEmail(email);
+          setFormData({
+            firstName,
+            lastName,
+            phone,
+            address,
+            password: "",
+          });
+        } else {
+          const storedUser = localStorage.getItem("user");
+          if (storedUser) {
+            const parsedUser = JSON.parse(storedUser);
+            setUserEmail(parsedUser.email || "");
+            setFormData({
+              firstName: parsedUser.first_name || parsedUser.firstName || "",
+              lastName: parsedUser.last_name || parsedUser.lastName || "",
+              phone: parsedUser.phone || "",
+              address: parsedUser.address || "",
+              password: "",
+            });
+          }
+        }
       } catch (error) {
-        console.error("Error parsing user data:", error);
+        console.error("Error loading profile:", error);
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          const parsedUser = JSON.parse(storedUser);
+          setUserEmail(parsedUser.email || "");
+          setFormData({
+            firstName: parsedUser.first_name || parsedUser.firstName || "",
+            lastName: parsedUser.last_name || parsedUser.lastName || "",
+            phone: parsedUser.phone || "",
+            address: parsedUser.address || "",
+            password: "",
+          });
+        }
       }
-    }
+    };
+
+    loadProfile();
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
 
     if (!formData.password) {
-      alert("Debes ingresar tu contraseña para guardar los cambios");
+      setErrors({ password: "Debes ingresar tu contraseña para guardar los cambios" });
       return;
     }
 
@@ -81,17 +137,20 @@ export function PersonalInfoForm() {
 
         localStorage.setItem("user", JSON.stringify(updatedUser));
 
-        alert("Perfil actualizado correctamente");
+        triggerAlert("success", "Éxito", "Perfil actualizado correctamente");
 
-        window.location.reload();
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
       } else {
-        alert(response.msg || "Error al actualizar perfil");
+        triggerAlert("error", "Error", response.msg || "Error al actualizar perfil");
       }
     } catch (error: any) {
       console.error("Error completo:", error);
-      alert(
-        "Error: " +
-        (error.response?.data?.msg || error.message || "Error al actualizar"),
+      triggerAlert(
+        "error",
+        "Error",
+        error.response?.data?.msg || error.message || "Error al actualizar",
       );
     } finally {
       setLoading(false);
@@ -125,6 +184,16 @@ export function PersonalInfoForm() {
       title="Información Personal"
       description="Actualiza tus datos personales"
     >
+      {showAlert && (
+        <div className="mb-4">
+          <Alert
+            variant={alertVariant}
+            title={alertTitle}
+            description={alertDescription}
+          />
+        </div>
+      )}
+
       {isHardcodedAccount && (
         <div className="mb-5 flex items-center gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
           <FiAlertTriangle className="h-5 w-5 flex-shrink-0 text-amber-500" />
@@ -211,6 +280,7 @@ export function PersonalInfoForm() {
             iconPosition="left"
             icon={<FiLock className="text-gray-400" size={18} />}
           />
+          {errors.password && <ErrorMessage message={errors.password} />}
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
             Requerida para sincronizar con el sistema
           </p>
