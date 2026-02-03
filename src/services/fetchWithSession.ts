@@ -14,12 +14,16 @@ export async function fetchWithSession(
 
   try {
     response = await fetch(input, init);
-  } catch {
-    dispatchEvent(
-      "SERVER_DOWN",
-      "No se puede conectar con el servidor. Intenta nuevamente más tarde."
-    );
-    throw new Error("SERVER_DOWN");
+  } catch (error) {
+    // Solo mostrar modal de servidor caído para errores de red reales
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    if (errorMessage.includes('fetch') || errorMessage.includes('network') || errorMessage.includes('NETWORK_ERROR')) {
+      dispatchEvent(
+        "SERVER_DOWN",
+        "Error de conexión con el servidor. Verifica tu conexión a internet."
+      );
+    }
+    throw new Error("NETWORK_ERROR");
   }
 
   // Log para debugging
@@ -35,6 +39,12 @@ export async function fetchWithSession(
     dispatchEvent("SESSION_EXPIRED", message);
 
     throw new Error("SESSION_EXPIRED");
+  }
+
+  // Para otros errores del servidor (500, 502, etc.), no mostrar modal de mantenimiento
+  // a menos que sea un error de infraestructura real
+  if (!response.ok && response.status >= 500) {
+    console.warn(`Server error ${response.status} for ${input}`);
   }
 
   return response;
