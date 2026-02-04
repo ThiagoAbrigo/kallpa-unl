@@ -532,6 +532,33 @@ export default function DashboardAsistencia() {
     });
   };
 
+  // Función para obtener el programa formateado
+  const getFormattedProgram = (program: string) => {
+    if (!program) return 'SIN PROGRAMA';
+    switch (program.toUpperCase()) {
+      case 'INICIACION':
+      case 'INICIACIÓN':
+        return 'INICIACIÓN';
+      case 'FUNCIONAL':
+        return 'FUNCIONAL';
+      default:
+        return program.toUpperCase();
+    }
+  };
+
+  // Función para obtener el color del programa
+  const getProgramColor = (program: string) => {
+    const formattedProgram = getFormattedProgram(program);
+    switch (formattedProgram) {
+      case 'INICIACIÓN':
+        return 'text-blue-500';
+      case 'FUNCIONAL':
+        return 'text-emerald-600';
+      default:
+        return 'text-gray-500';
+    }
+  };
+
   const activeParticipants = participants.filter(p => p.status === 'active' || p.status === 'ACTIVO').length;
 
   if (loading) return <Loading />;
@@ -617,7 +644,9 @@ export default function DashboardAsistencia() {
                   <div className="flex justify-between items-start mb-3">
                     <div>
                       <h3 className="font-bold text-base text-gray-900 dark:text-white leading-tight">{schedule.name}</h3>
-                      <span className="text-[10px] font-bold text-blue-500 uppercase">INICIACIÓN</span>
+                      <span className={`text-[10px] font-bold uppercase ${getProgramColor(schedule.program || '')}`}>
+                        {getFormattedProgram(schedule.program || '')}
+                      </span>
                     </div>
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 ${isCompleted ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10' : 'bg-orange-50 text-orange-500 dark:bg-orange-500/10'}`}>
                       {isCompleted ? <Check size={10} /> : <Timer size={10} />}
@@ -681,7 +710,9 @@ export default function DashboardAsistencia() {
                   <div className="flex justify-between items-start mb-3">
                     <div>
                       <h3 className="font-bold text-base text-gray-900 dark:text-white leading-tight">{session.name}</h3>
-                      <span className="text-[10px] font-bold text-lime-600 dark:text-lime-400 uppercase">INICIACIÓN</span>
+                      <span className={`text-[10px] font-bold uppercase ${getProgramColor(session.program || '')}`}>
+                        {getFormattedProgram(session.program || '')}
+                      </span>
                     </div>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-lime-50 dark:bg-lime-500/10 text-lime-600 dark:text-lime-400 flex items-center gap-1">
                       <Calendar size={10} /> Próxima
