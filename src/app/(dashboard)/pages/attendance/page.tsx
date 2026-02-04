@@ -665,14 +665,14 @@ export default function DashboardAsistencia() {
                   </div>
                   <div className="flex gap-2">
                     <Link href={`/pages/attendance/registro?session=${scheduleId}&date=${currentDate.toISOString().split('T')[0]}`}
-                      className="flex-[3] py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all"
+                      className="flex-[3] py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-100 hover:border-indigo-200 rounded-xl text-xs font-medium flex items-center justify-center gap-2 transition-all dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 dark:text-indigo-400 dark:border-indigo-500/20 dark:hover:border-indigo-500/30"
                     >
                       <Check size={14} /> {isCompleted ? 'Editar Asistencia' : 'Registrar Asistencia'}
                     </Link>
-                    <button onClick={() => handleEdit(schedule)} className="flex-1 py-2 bg-lime-500 hover:bg-lime-600 text-lime-950 dark:text-white rounded-xl flex items-center justify-center transition-all">
+                    <button onClick={() => handleEdit(schedule)} className="flex-1 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-100 hover:border-emerald-200 rounded-xl flex items-center justify-center transition-all dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/20 dark:hover:border-emerald-500/30">
                       <Edit3 size={16} />
                     </button>
-                    <button onClick={() => handleDelete(scheduleId, schedule.name)} className="flex-1 py-2 bg-gray-50 dark:bg-gray-800 text-gray-400 hover:text-red-500 rounded-xl flex items-center justify-center transition-all border border-gray-100 dark:border-gray-700">
+                    <button onClick={() => handleDelete(scheduleId, schedule.name)} className="flex-1 py-2 bg-gray-50 dark:bg-gray-800/50 text-gray-500 hover:bg-red-50 hover:text-red-500 rounded-xl flex items-center justify-center transition-all border border-gray-200 hover:border-red-200 dark:border-gray-700 dark:hover:bg-red-500/10 dark:hover:border-red-500/30 dark:text-gray-400 dark:hover:text-red-400">
                       <Trash2 size={16} />
                     </button>
                   </div>
@@ -723,10 +723,10 @@ export default function DashboardAsistencia() {
                     <div className="flex items-center gap-2 text-xs"><Calendar size={14} className="text-blue-400" /> {formatShortDate(sessionDate)}</div>
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => handleEdit(session)} className="flex-[4] py-2 bg-lime-500 hover:bg-lime-600 text-lime-950 dark:text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all">
+                    <button onClick={() => handleEdit(session)} className="flex-[4] py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-100 hover:border-emerald-200 rounded-xl text-xs font-medium flex items-center justify-center gap-2 transition-all dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/20 dark:hover:border-emerald-500/30">
                       <Edit3 size={14} /> Editar
                     </button>
-                    <button onClick={() => handleDelete(sessionId, session.name)} className="flex-1 py-2 bg-gray-50 dark:bg-gray-800 text-gray-400 hover:text-red-500 rounded-xl flex items-center justify-center transition-all border border-gray-100 dark:border-gray-700">
+                    <button onClick={() => handleDelete(sessionId, session.name)} className="flex-1 py-2 bg-gray-50 dark:bg-gray-800/50 text-gray-500 hover:bg-red-50 hover:text-red-500 rounded-xl flex items-center justify-center transition-all border border-gray-200 hover:border-red-200 dark:border-gray-700 dark:hover:bg-red-500/10 dark:hover:border-red-500/30 dark:text-gray-400 dark:hover:text-red-400">
                       <Trash2 size={16} />
                     </button>
                   </div>
