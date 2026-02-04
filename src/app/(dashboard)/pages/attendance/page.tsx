@@ -18,6 +18,7 @@ import ErrorMessage from '@/components/FormElements/errormessage';
 import { Button } from '@/components/ui-elements/button';
 import { Select } from '@/components/FormElements/select';
 import InputGroup from '@/components/FormElements/InputGroup';
+import DatePickerTwo from '@/components/FormElements/DatePicker/DatePickerTwo';
 import { extractErrorMessage, isServerDownError } from '@/utils/error-handler';
 import { useSession } from '@/context/SessionContext';
 import { parseDate } from '@/lib/utils';
@@ -372,23 +373,37 @@ export default function DashboardAsistencia() {
 
     setDeleting(sessionToDelete.id);
     setShowConfirmDelete(false);
+    
     try {
       await attendanceService.deleteSchedule(String(sessionToDelete.id));
+      
+      // Actualizar estado local inmediatamente
       setUpcomingSessions(prev => prev.filter(s => (s.external_id || s.id) !== sessionToDelete.id));
       setTodaySchedules(prev => prev.filter(s => ((s as any).external_id || s.id) !== sessionToDelete.id));
+      
+      // Mostrar mensaje de éxito
       triggerAlert(
         'success',
-        'Sesión eliminada',
+        'Sesión eliminada exitosamente',
         `La sesión "${sessionToDelete.name}" se ha eliminado correctamente.`
       );
-      loadData();
+
+      // Recargar datos (si falla, no afecta el mensaje de éxito)
+      try {
+        await loadData();
+      } catch (reloadError) {
+        console.warn('Error al recargar datos después de eliminación:', reloadError);
+      }
+
     } catch (error) {
+      console.error('Error al eliminar sesión:', error);
+      
       if (isServerDownError(error)) {
         showServerDown(extractErrorMessage(error));
       } else {
         triggerAlert(
           'error',
-          'Error al eliminar',
+          'Error al eliminar sesión',
           extractErrorMessage(error)
         );
       }
@@ -447,21 +462,41 @@ export default function DashboardAsistencia() {
 
     setEditEndDateError('');
 
+    // Calcular dayOfWeek correcto
+    const specificDate = formData.get('specific_date') as string;
+    let calculatedDayOfWeek = '';
+    
+    if (specificDate) {
+      // Para sesiones con fecha específica, calcular el día de la semana automáticamente
+      const dateObj = new Date(specificDate + 'T12:00:00');
+      const dayIndex = dateObj.getDay(); // 0=domingo, 1=lunes, ..., 6=sábado
+      const dayNames = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+      calculatedDayOfWeek = dayNames[dayIndex];
+    } else {
+      // Para sesiones recurrentes, usar el día seleccionado
+      calculatedDayOfWeek = dayMap[dayValue] || dayValue?.toUpperCase() || '';
+    }
+
     const data = {
       name: formData.get('name') as string,
       program: formData.get('program') as string,
-      dayOfWeek: dayMap[dayValue] || dayValue?.toUpperCase(),
+      dayOfWeek: calculatedDayOfWeek,
       startTime: formData.get('start_time') as string,
       endTime: formData.get('end_time') as string,
       location: formData.get('location') as string,
-      specificDate: formData.get('specific_date') as string || undefined,
+      specificDate: specificDate || undefined,
       endDate: endDate || undefined,
     };
 
     try {
       await attendanceService.updateSchedule(String(sessionId), data);
       setEditingSession(null);
-      loadData(); // Recargar datos
+      await loadData(); // Recargar datos
+      triggerAlert(
+        'success',
+        'Sesión actualizada',
+        'Los cambios se han guardado correctamente.'
+      );
       triggerAlert(
         'success',
         'Sesión actualizada',
@@ -605,17 +640,24 @@ export default function DashboardAsistencia() {
                     <Check size={14} /> Registrar Asistencia
                   </Link>
                 </div>
-              );
-            })}
-          </div>
-        ) : (
-          <EmptyState
-            title="No tienes sesiones programadas para hoy"
-            description="Parece que tu agenda está libre por ahora. Aprovecha este tiempo para planificar tus próximos objetivos."
-            icon={Calendar}
-            onAction={() => router.push("/pages/attendance/programar")}
-          />
-        )}
+
+                <div className="flex gap-2">
+                  <Link href={`/pages/attendance/registro?session=${scheduleId}&date=${currentDate.toISOString().split('T')[0]}`}
+                    className="flex-[3] py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all"
+                  >
+                    <Check size={14} /> {isCompleted ? 'Editar Asistencia' : 'Registrar Asistencia'}
+                  </Link>
+                  <button onClick={() => handleEdit(schedule)} className="flex-1 py-2 bg-lime-500 hover:bg-lime-600 text-lime-950 dark:text-white rounded-xl flex items-center justify-center transition-all">
+                    <Edit3 size={16} />
+                  </button>
+                  <button onClick={() => handleDelete(scheduleId, schedule.name)} className="flex-1 py-2 bg-gray-50 dark:bg-gray-800 text-gray-400 hover:text-red-500 rounded-xl flex items-center justify-center transition-all border border-gray-100 dark:border-gray-700">
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </section>
 
       {/* --- PRÓXIMAS SESIONES --- */}
@@ -656,6 +698,23 @@ export default function DashboardAsistencia() {
                       <Trash2 size={16} />
                     </button>
                   </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-lime-50 dark:bg-lime-500/10 text-lime-600 dark:text-lime-400 flex items-center gap-1">
+                    <Calendar size={10} /> Próxima
+                  </span>
+                </div>
+
+                <div className="space-y-2 mb-4 text-gray-500 dark:text-gray-400">
+                  <div className="flex items-center gap-2 text-xs"><Clock size={14} className="text-red-400" /> {session.start_time} - {session.end_time}</div>
+                  <div className="flex items-center gap-2 text-xs"><Calendar size={14} className="text-blue-400" /> {formatShortDate(sessionDate)}</div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button onClick={() => handleEdit(session)} className="flex-[4] py-2 bg-lime-500 hover:bg-lime-600 text-lime-950 dark:text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all">
+                    <Edit3 size={14} /> Editar
+                  </button>
+                  <button onClick={() => handleDelete(sessionId, session.name)} className="flex-1 py-2 bg-gray-50 dark:bg-gray-800 text-gray-400 hover:text-red-500 rounded-xl flex items-center justify-center transition-all border border-gray-100 dark:border-gray-700">
+                    <Trash2 size={16} />
+                  </button>
                 </div>
               );
             })}
@@ -702,6 +761,7 @@ export default function DashboardAsistencia() {
                 name="name"
                 defaultValue={editingSession.name || ''}
                 placeholder="Nombre de la sesión"
+                allowOnlyAlphanumeric={true}
                 required
               />
 
@@ -718,15 +778,17 @@ export default function DashboardAsistencia() {
               {editingSession.is_recurring === false || editingSession.specific_date ? (
                 // Sesión con fecha específica
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha específica</label>
-                  <input
-                    type="date"
-                    name="specific_date"
-                    defaultValue={editingSession.specific_date || ''}
-                    required
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                  <DatePickerTwo
+                    label="Fecha específica"
+                    value={editingSession.specific_date || ''}
+                    onChange={(newDate) => {
+                      // Actualizar el estado local para manejar cambios
+                      setEditingSession(prev => prev ? { ...prev, specific_date: newDate } : null);
+                    }}
+                    minDate="today"
                   />
                   {/* Campo oculto para mantener compatibilidad */}
+                  <input type="hidden" name="specific_date" value={editingSession.specific_date || ''} />
                   <input type="hidden" name="day_of_week" value={editingSession.day_of_week || ''} />
                 </div>
               ) : (
@@ -747,15 +809,16 @@ export default function DashboardAsistencia() {
                     ]}
                   />
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha fin (opcional)</label>
-                    <input
-                      type="date"
-                      name="end_date"
-                      defaultValue={editingSession.end_date || ''}
-                      onChange={() => setEditEndDateError('')}
-                      min={new Date().toISOString().split('T')[0]}
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                    <DatePickerTwo
+                      label="Fecha fin (opcional)"
+                      value={editingSession.end_date || ''}
+                      onChange={(newDate) => {
+                        setEditingSession(prev => prev ? { ...prev, end_date: newDate } : null);
+                        setEditEndDateError(''); // Limpiar error al cambiar
+                      }}
+                      minDate={new Date().toISOString().split('T')[0]}
                     />
+                    <input type="hidden" name="end_date" value={editingSession.end_date || ''} />
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">La fecha debe coincidir con el día de la semana seleccionado</p>
                     <ErrorMessage message={editEndDateError} />
                   </div>
@@ -785,7 +848,7 @@ export default function DashboardAsistencia() {
                 />
               </div>
               <InputGroup
-                label="Ubicación"
+                label="Ubicación (opcional)"
                 type="text"
                 name="location"
                 defaultValue={editingSession.location || ''}
